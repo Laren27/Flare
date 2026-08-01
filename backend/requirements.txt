@@ -18,3 +18,9 @@ PyJWT==2.13.0
 
 # Password hashing -- ADR-019, Ch. 22 (bcrypt directly, not the unmaintained passlib)
 bcrypt==5.0.0
+
+# Test runner. Ch. 21 makes automated tests required, not optional: the
+# headline claim (ADR-010) is a concurrency claim, and an untested concurrency
+# claim is a hope. pytest-asyncio arrives in week 4 with test_accept_lock.py --
+# week 2's Haversine tests are pure functions and need neither it nor a database.
+pytest==9.1.1
