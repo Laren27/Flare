@@ -22,7 +22,7 @@ from pathlib import Path
 # Allows `python scripts/create_admin.py` as well as `python -m scripts.create_admin`.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.database import SessionFactory  # noqa: E402
+from app.database import get_session_factory  # noqa: E402
 from app.models import UserRole  # noqa: E402
 from app.services import auth as auth_service  # noqa: E402
 
@@ -43,7 +43,7 @@ def read_password() -> str:
 
 
 async def create_admin(name: str, phone: str, password: str) -> None:
-    async with SessionFactory() as session:
+    async with get_session_factory()() as session:
         try:
             user = await auth_service.create_user(
                 session, name=name, phone=phone, password=password, role=UserRole.ADMIN
