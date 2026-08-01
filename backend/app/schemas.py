@@ -10,7 +10,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models import UserRole
+from app.models import SkillClass, SOSStatus, UserRole
 
 # Signup is open to citizens and volunteers only. Admins approve volunteer
 # certificates (ADR-006), so an open admin route would make that trust
@@ -51,3 +51,43 @@ class UserOut(BaseModel):
     phone: str
     role: UserRole
     created_at: datetime
+
+
+class SOSCreateRequest(BaseModel):
+    """Coordinates come from the browser Geolocation API (Ch. 17). Bounds are
+    validated here so an impossible coordinate is rejected at the edge rather
+    than producing a plausible-looking distance deeper in."""
+
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
+    description: str | None = Field(default=None, max_length=2000)
+
+
+class CandidateOut(BaseModel):
+    """Deliberately free of personal data. The citizen has no need for a
+    responder's name or number before anyone has accepted (Ch. 22), and week 5's
+    citizen view only ever renders the one responder who did."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    volunteer_id: int
+    distance_m: float
+    skill: SkillClass
+    skill_match: bool
+
+
+class SOSCreateResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    status: SOSStatus
+    current_radius_m: int
+    wave_count: int
+    created_at: datetime
+    first_dispatch_at: datetime | None
+
+    candidates: list[CandidateOut]
+    # Every volunteer assessed, selected or not. The gap between this and
+    # len(candidates) is the first stage of the ADR-015 dispatch funnel, and
+    # each one has a DispatchEvents row explaining itself.
+    evaluated_count: int
