@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expiry_minutes: int = 60
 
+    # Wave 1 dispatch radius. The escalation ladder of ADR-012 walks outward
+    # from here (1km -> 2km -> 3km); the rungs above this one arrive in week 4.
+    base_radius_m: int = 1000
+
 
 @lru_cache
 def get_settings() -> Settings:
