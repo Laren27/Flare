@@ -1,0 +1,20 @@
+# Core stack -- blueprint Ch. 3, ADR-001
+fastapi==0.141.1
+uvicorn[standard]==0.52.0
+sqlalchemy[asyncio]==2.0.51
+
+# PostgreSQL driver. psycopg 3 serves both the async application (ADR-018)
+# and the sync Alembic migration engine (ADR-017) from a single dependency.
+psycopg[binary]==3.3.4
+
+# Schema migrations -- ADR-017
+alembic==1.18.5
+
+# Typed configuration from environment variables -- Ch. 20
+pydantic-settings==2.14.2
+
+# JWT issuance and verification -- ADR-019 (PyJWT, not the unmaintained python-jose)
+PyJWT==2.13.0
+
+# Password hashing -- ADR-019, Ch. 22 (bcrypt directly, not the unmaintained passlib)
+bcrypt==5.0.0
