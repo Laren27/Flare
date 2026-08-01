@@ -90,13 +90,22 @@ class DispatchOutcome(enum.StrEnum):
 
 
 class RejectionReason(enum.StrEnum):
-    """Why a candidate was not alerted. Null when `outcome` is `alerted`."""
+    """Why a candidate was not alerted. Null when `outcome` is `alerted`.
+
+    When several apply, ADR-021 fixes the precedence: eligibility before
+    geography, so `out_of_radius` counts only volunteers who genuinely could
+    have responded but were too far away.
+    """
 
     OUT_OF_RADIUS = "out_of_radius"
     UNAVAILABLE = "unavailable"
     UNVERIFIED = "unverified"
     ALREADY_ALERTED = "already_alerted"
     NO_SOCKET = "no_socket"
+    # A verified, available volunteer we have never had a position for. Distinct
+    # from `unavailable` on purpose -- "never located" and "went offline" are
+    # different failures with different remedies (ADR-021).
+    NO_LOCATION = "no_location"
 
 
 class EscalationTrigger(enum.StrEnum):
@@ -246,7 +255,10 @@ class DispatchEvent(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     radius_m_at_eval: Mapped[int] = mapped_column(Integer, nullable=False)
-    distance_m: Mapped[float] = mapped_column(Float, nullable=False)
+    # Null exactly when rejection_reason is `no_location`: a volunteer with no
+    # fix has no distance, and inventing one would corrupt every distance-based
+    # metric in ADR-015 (ADR-021).
+    distance_m: Mapped[float | None] = mapped_column(Float, nullable=True)
     skill_match: Mapped[bool] = mapped_column(Boolean, nullable=False)
     outcome: Mapped[DispatchOutcome] = mapped_column(
         enum_column(DispatchOutcome, "dispatch_outcome"), nullable=False
