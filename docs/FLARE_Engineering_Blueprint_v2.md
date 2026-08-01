@@ -170,6 +170,28 @@ This is a running log. New entries go at the bottom. Format: Decision → Altern
 - Alternatives considered: multiple human operators on multiple physical devices (the v1.0 assumption); manual browser tabs.
 - Why: Three reasons, in ascending order of importance. (1) This is a solo build — there is no second and third person to hold devices. (2) Human operators cannot reliably produce a sub-50ms acceptance race, so the ADR-010 concurrency claim is *unprovable* by hand; a script proves it deterministically and repeatably. (3) It permits demonstration at a scale that makes the analytics meaningful — 50 seeded responders and a few hundred synthetic incidents produce a dashboard with real distributions, rather than a dashboard with three data points. The harness is also what makes seeded demo data reproducible on demo day.
 
+**ADR-017: Schema migrations**
+- Decision: Alembic, with the initial revision creating all seven Chapter 12 tables. `sqlalchemy.url` is never written into `alembic.ini` — `env.py` reads `DATABASE_URL` from the environment, so no credential enters the repository.
+- Alternatives considered: `Base.metadata.create_all()` at startup or in a small init script; hand-written SQL DDL files.
+- Why: `create_all` is genuinely simpler and would satisfy Rule 002 if the schema were static — but it is not. It creates missing tables and silently ignores changes to existing ones, so every later schema change (the `certificate_path` column that Chapter 14's certificate upload needs, and any analytics column week 6 wants) would mean dropping and recreating the database, destroying the seeded demo corpus that ADR-016 exists to make reproducible. That is a demonstrated problem in this project, not a hypothetical one, which is what Rule 001 asks for. Alembic costs one dependency and a ~40-line `env.py`. Migrations run with `alembic upgrade head` from `backend/`; the migration engine is sync even though the application is async (ADR-018), because async migrations buy nothing and cost boilerplate.
+
+**ADR-018: Database session style — async**
+- Decision: SQLAlchemy 2.0 `AsyncSession` over the `psycopg` (v3) async driver, `postgresql+psycopg://`. All route handlers and services are `async def`.
+- Alternatives considered: synchronous `Session` with `def` route handlers (FastAPI runs these in a threadpool); asyncpg instead of psycopg 3.
+- Why: two concrete forces, both from decisions already made. ADR-012's escalation state machine runs inside `asyncio.create_task`; a blocking database call inside one of those tasks stalls the same event loop that is delivering WebSocket alerts, which converts a background timer into a system-wide pause. And ADR-010 mandates proving the accept-lock at N=50 concurrent accepts — FastAPI's default threadpool is 40 threads, so a synchronous implementation would partially serialise the exact race the test exists to exercise, weakening the proof without failing it. Sync sessions would be simpler for weeks 1–2 and then fought for weeks 3–4; the cost of switching later is every service signature in the codebase. psycopg 3 is chosen over asyncpg because SQLAlchemy drives it both async (the app) and sync (Alembic, per ADR-017) from a single dependency, and because `psycopg2-binary` has no wheels for the Python version in use here.
+
+**ADR-019: Authentication mechanics**
+- Decision: `PyJWT` for HS256 tokens (claims: `sub`, `role`, `iat`, `exp`; expiry enforced on decode) and the `bcrypt` library directly for password hashing. Login accepts a JSON body, not an OAuth2 password form. `POST /auth/signup` accepts `citizen` and `volunteer` only; admin accounts are created out-of-band by `backend/scripts/create_admin.py`.
+- Alternatives considered: `python-jose` for JWT; `passlib[bcrypt]` for hashing; `OAuth2PasswordRequestForm` for login; allowing `role=admin` at signup.
+- Why: `python-jose` is effectively unmaintained and `passlib` breaks against modern bcrypt releases — both are inherited defaults from older FastAPI tutorials rather than considered choices, and neither is worth a dependency that fails at an inconvenient moment. `OAuth2PasswordRequestForm` requires `python-multipart` and takes `username`/`password` form fields, which contradicts the Chapter 20 convention of a Pydantic model for every request body and misnames the identifier (this system logs in by phone — Chapter 12 gives `users` no email column). Self-registering admins would be the simplest option and is the one to reject: admins approve volunteer certificates under ADR-006, so an open admin signup route makes the entire verification-trust story unfalsifiable. A bootstrap script is honest about where trust originates.
+
+**ADR-020: Event loop selection on Windows**
+- Decision: the development server is started by `backend/run.py`, which runs uvicorn on a `SelectorEventLoop`. `app.main`'s lifespan asserts at startup that the running loop is usable and refuses to serve otherwise.
+- Context: psycopg's async mode (ADR-018) cannot run on Windows' default `ProactorEventLoop`, and uvicorn creates its event loop *before* it imports the application — so the loop cannot be chosen from inside `app`, only at the process entry point.
+- Alternatives considered: switching the application driver to asyncpg, which tolerates the Proactor loop; calling the deprecated `asyncio.set_event_loop_policy`; documenting `uvicorn app.main:app --reload` as the only supported command, since uvicorn's reload mode already selects a `SelectorEventLoop` on Windows.
+- Why: asyncpg would mean two database drivers — asyncpg for the app, psycopg for Alembic — which discards the single-driver argument ADR-018 was chosen for. Event loop policies are deprecated as of Python 3.14 and scheduled for removal, so building on them buys a fix with a known expiry date. Relying on `--reload` works today but depends on a uvicorn implementation detail that is not part of its contract, and would fail silently and confusingly the first time anyone ran the server without reload. An explicit entry point states the requirement in the one place that can satisfy it. The startup assertion exists because the failure otherwise appears as an opaque driver error on the first query that touches the database, several layers away from the cause — the same objection this project raises to silent failure everywhere else.
+- Note: `SelectorEventLoop` on Windows is bounded by `select()` at 512 sockets. The simulation harness of ADR-016 targets 50 concurrent responders, so this does not bind at demo scale (Rule 004), and Linux deployment (Ch. 23) uses `SelectorEventLoop` by default with no such limit.
+
 ---
 
 # PART II — PRODUCT DESIGN
@@ -295,11 +317,17 @@ Three role-based views, deliberately minimal:
 
 ```
 Users
-  id, name, phone, role (citizen | volunteer | admin), password_hash
+  id, name, phone, role (citizen | volunteer | admin), password_hash,
+  created_at
+  (phone is the login identifier and is unique — there is deliberately
+   no email column)
 
 Volunteers
   user_id, verified (bool), certificate_type, skills (cpr | blood_donor |
   first_aid | general), availability (bool)
+  (single-valued: one skill class per volunteer, so that ADR-015's
+   "acceptance rate by skill class" is an unambiguous GROUP BY and
+   ADR-007's ranking is a sort key. Multi-skill volunteers are Future Scope.)
 
 Locations
   user_id, lat, lng, updated_at
@@ -309,7 +337,8 @@ SOS
   id, victim_id, lat, lng, description,
   status (pending | matched | resolved | no_responder_found),
   current_radius_m, wave_count,
-  ai_category, ai_priority, ai_status (ok | timeout | error | skipped),
+  ai_category, ai_priority (low | medium | high),
+  ai_status (ok | timeout | error | skipped),
   created_at, first_dispatch_at, matched_at, resolved_at, accepted_by
 
 Notifications
@@ -324,10 +353,17 @@ DispatchEvents                                        -- ADR-014
                     already_alerted | no_socket | null)
 
 Incident History
-  id, sos_id, response_time_seconds, escalation_count,
+  id, sos_id (unique — one history row per incident),
+  response_time_seconds, escalation_count,
   final_radius_m, escalation_trigger (none | empty_set | timeout),
   resolved_at
 ```
+
+The "per-wave radius and candidate counts" named at the end of Chapter 13 are
+deliberately *not* a separate table or a set of `SOS` columns: `DispatchEvents`
+already carries `wave_number` and `radius_m_at_eval` on every row, so both are a
+`GROUP BY wave_number` away, and `SOS.wave_count` holds the total. One artefact,
+several uses — the same argument ADR-014 makes.
 
 `DispatchEvents` is the one table added relative to v1.0, justified by ADR-014. It is deliberately append-only and denormalised — it is an event log, not a normalised entity, and every metric in ADR-015 is a query over it. Any further table requires its own ADR entry (Rule 006).
 
@@ -613,3 +649,5 @@ Chapter 4 (ADR) in the same format as existing entries.
 
 - v1.0 — Initial blueprint established, incorporating: core dispatch engine scope, skill-aware matching, single-bounded AI use case, admin analytics dashboard, fallback/radius-expansion path, and concurrency-correctness as an explicit demo requirement.
 - v2.0 — Build model corrected from four-person team to solo + AI collaborator; 8-week timeline fixed. Added ADR-011 (accept-lock enforced by atomic conditional UPDATE, replacing unspecified mechanism), ADR-012 (radius expansion triggered by both empty-candidate-set and acceptance-timeout, via an escalation state machine), ADR-013 (AI summary removed from dispatch critical path, made concurrent with timeout and fallback), ADR-014 (structured dispatch event log), ADR-015 (analytics promoted to co-headline deliverable with seven precisely defined metrics, superseding ADR-009 in scope), ADR-016 (responder simulation harness as core scope). Added Chapter 18A (analytics specification). Rewrote Chapter 13 dispatch sequence, Chapter 12 schema (+`DispatchEvents`, funnel timestamps), Chapter 19 folder structure (+`sim/`, `tests/`, `analytics/`, `CLAUDE.md`), Chapter 21 testing (automated tests moved to required), Chapter 24 roadmap (filled: 8-week plan), Chapter 27 demo strategy (four-act solo run).
+- v2.1 — Week 1 foundation decisions recorded: ADR-017 (Alembic for schema migrations), ADR-018 (async SQLAlchemy sessions over psycopg 3), ADR-019 (PyJWT + bcrypt, JSON login body, admin accounts created out-of-band rather than by signup). Chapter 12 annotated to resolve four ambiguities surfaced while implementing it: `phone` is the unique login identifier, `Volunteers.skills` is single-valued, `ai_priority` values are `{low, medium, high}`, `IncidentHistory.sos_id` is unique. Added `Users.created_at`. Recorded that per-wave radius and candidate counts are derived from `DispatchEvents`, not stored separately.
+- v2.2 — ADR-020 (event loop selection on Windows: `backend/run.py` entry point plus a startup assertion, constraining ADR-018's async driver choice on the development platform).
