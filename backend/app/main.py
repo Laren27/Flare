@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.config import get_settings
-from app.routers import auth
+from app.routers import auth, sos
 
 
 def assert_usable_event_loop() -> None:
@@ -56,6 +56,7 @@ def create_app() -> FastAPI:
         return {"status": "ok"}
 
     app.include_router(auth.router)
+    app.include_router(sos.router)
 
     return app
 
