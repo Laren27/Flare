@@ -5,8 +5,10 @@ finds nearby verified responders with relevant skills, alerts them over
 WebSockets, and logs every dispatch decision so the network's failures can be
 measured rather than guessed at.
 
-**Status: week 1 of 8.** Foundation only — auth and schema. The dispatch engine,
-real-time layer, and analytics land in later weeks; see the roadmap in
+**Status: week 2 of 8.** Auth, schema, and the dispatch core — candidate
+selection works offline, as a function of the database, with every decision
+logged. The real-time layer, accept-lock, escalation, clients and analytics land
+in later weeks; see the roadmap in
 [Chapter 24 of the blueprint](docs/FLARE_Engineering_Blueprint_v2.md).
 
 The blueprint is the authoritative spec. Architectural decisions, including the
@@ -74,6 +76,7 @@ later on the first query.
 | `POST` | `/auth/signup` | citizen or volunteer; volunteers get an unverified, offline volunteer record |
 | `POST` | `/auth/login` | phone + password → bearer token |
 | `GET` | `/auth/me` | requires a valid, unexpired token |
+| `POST` | `/sos` | creates an incident and returns the wave-1 ranked candidate list |
 
 ## Layout
 
@@ -89,6 +92,12 @@ frontend/               citizen / volunteer / admin views  — week 5
 
 ## Tests
 
+```bash
+cd backend && pytest
+```
+
 Deliberately narrow (Ch. 21): concurrency and distance correctness are tested,
-CRUD and views are covered by the demo run-through. Nothing to run yet — the
-first tests arrive in week 2.
+CRUD and views are covered by the demo run-through. `test_haversine.py` needs no
+database and no environment — the dispatch core is proven as a pure function
+before any transport exists. `test_accept_lock.py` and `test_escalation.py`
+arrive in week 4.
