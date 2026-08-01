@@ -1,9 +1,30 @@
+# Python
 __pycache__/
-*.pyc
-.env
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Virtualenvs
 .venv/
 venv/
+
+# Environment / secrets -- .env.example is committed, real .env files never are
+.env
+.env.*
+!.env.example
+
+# Volunteer certificate uploads (Ch. 22: stored, never publicly exposed)
+uploads/
+
+# Local databases and logs
 *.db
-node_modules/
-.DS_Store
 *.log
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Frontend
+node_modules/
