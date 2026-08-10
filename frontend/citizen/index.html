@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Emergency — FLARE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="/app/shared/tokens.css">
+<link rel="stylesheet" href="/app/shared/base.css">
+<link rel="stylesheet" href="/app/shared/components.css">
+</head>
+<body>
+
+<div class="app">
+  <nav class="sidebar app__sidebar" aria-label="Citizen navigation">
+    <a class="brand brand--light sidebar__brand" href="/app/"><span class="brand__mark">🔥</span> FLARE</a>
+    <a class="sidebar__link" href="#" aria-current="page"><span class="sidebar__icon">🚨</span><span class="sidebar__label">Emergency</span></a>
+    <a class="sidebar__link" href="#history"><span class="sidebar__icon">📋</span><span class="sidebar__label">My Requests</span></a>
+    <a class="sidebar__link" href="#location"><span class="sidebar__icon">📍</span><span class="sidebar__label">My Location</span></a>
+    <a class="sidebar__link" href="#profile"><span class="sidebar__icon">👤</span><span class="sidebar__label">Profile</span></a>
+    <div class="sidebar__spacer"></div>
+    <a class="sidebar__link" href="#" id="logout"><span class="sidebar__icon">⏻</span><span class="sidebar__label">Logout</span></a>
+  </nav>
+
+  <header class="topbar">
+    <h1 id="page-title" style="font-size:var(--text-lg)">Emergency</h1>
+    <span class="pill pill--live" id="live-pill" hidden>LIVE</span>
+    <div class="spacer"></div>
+    <span class="pill" id="conn-pill" title="Real-time connection">Connecting…</span>
+    <div class="responder">
+      <div class="avatar avatar--sm" id="user-initials">?</div>
+      <div class="tiny" style="line-height:1.2">
+        <div class="strong" id="user-name">—</div>
+        <div class="muted">Citizen</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="app__main">
+
+    <!-- ⑥ IDLE — the one-button SOS. Mobile-first; this is the whole product
+         to a citizen who is not currently in an emergency. -->
+    <section id="state-idle" class="stack" hidden>
+      <div class="card center stack" style="align-items:center;max-width:520px;margin-inline:auto">
+        <h2 style="font-family:var(--font-display);font-size:var(--text-2xl);color:var(--flare-red)">Need Help?</h2>
+        <p class="muted" style="max-width:34ch">
+          Press the button below to send an SOS to nearby trained responders.
+        </p>
+        <button class="sos-button" id="sos-button" type="button">SOS</button>
+        <p class="strong">Tap to Send SOS</p>
+        <p class="tiny muted" id="location-note">Locating you…</p>
+        <div id="idle-error" class="toast toast--error" hidden></div>
+      </div>
+
+      <div class="card">
+        <div class="card__header"><h3 class="card__title">What happens when you press it</h3></div>
+        <ol class="small muted stack stack--tight" style="padding-left:1.1rem">
+          <li>Your location is captured and the incident is recorded.</li>
+          <li>Verified responders within 1&nbsp;km are alerted immediately.</li>
+          <li>If nobody accepts, the search widens to 2&nbsp;km, then 3&nbsp;km.</li>
+          <li>If nobody is reachable at all, we tell you plainly and point you to emergency services.</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ② ACTIVE — responder assigned, live tracking. -->
+    <section id="state-active" class="stack" hidden>
+      <div class="grid grid--sos">
+        <div class="stack">
+          <div class="card stack">
+            <div>
+              <div class="stat__label">Status</div>
+              <div class="row row--tight" style="margin-top:var(--s-1)">
+                <span class="pill pill--success" id="active-status">✓ Responder Assigned</span>
+              </div>
+            </div>
+
+            <div id="responder-block">
+              <div class="stat__label" style="margin-bottom:var(--s-2)">Responder</div>
+              <div class="responder">
+                <div class="avatar avatar--green" id="responder-initials">AS</div>
+                <div style="flex:1">
+                  <div class="strong" id="responder-name">—</div>
+                  <div class="tiny muted"><span id="responder-rating">—</span> ★</div>
+                </div>
+                <button class="btn btn--ghost" aria-label="Call responder">📞</button>
+                <button class="btn btn--ghost" aria-label="Message responder">💬</button>
+              </div>
+            </div>
+
+            <div>
+              <div class="stat__label">ETA</div>
+              <div class="strong" id="eta-text">—</div>
+            </div>
+            <div>
+              <div class="stat__label">Type</div>
+              <div class="strong" id="incident-type">Unspecified</div>
+            </div>
+            <div>
+              <div class="stat__label">Location</div>
+              <div class="strong small" id="incident-location">—</div>
+            </div>
+
+            <button class="btn btn--outline-danger btn--block" id="cancel-button">Cancel Request</button>
+          </div>
+        </div>
+
+        <div class="card card--flush" style="position:relative">
+          <div class="map map--tall" id="map"></div>
+          <div class="map__badge" id="map-badge" hidden></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__header"><h3 class="card__title">What happens next?</h3></div>
+        <div class="scroll-x">
+          <div class="steps" id="steps"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ⑦ EXPANDING — the escalation ladder, shown calmly. This is the system
+         working, not failing, and the copy says so. -->
+    <section id="state-expanding" class="stack" hidden>
+      <div class="card center" style="max-width:560px;margin-inline:auto">
+        <span class="pill pill--info">Searching</span>
+        <h2 style="font-family:var(--font-display);margin-top:var(--s-3)">Widening the search</h2>
+        <p class="muted" style="max-width:40ch;margin-inline:auto">
+          No one has accepted yet, so we are reaching further out. Your request is still active.
+        </p>
+
+        <div class="radius-rings" id="rings" aria-hidden="true">
+          <span></span><span></span><span></span>
+          <div class="radius-rings__label" id="rings-label">1 km</div>
+        </div>
+
+        <div class="row" style="justify-content:center;gap:var(--s-5)">
+          <div><div class="stat__label">Radius</div><div class="strong numeric" id="expand-radius">1000 m</div></div>
+          <div><div class="stat__label">Wave</div><div class="strong numeric" id="expand-wave">1</div></div>
+          <div><div class="stat__label">Elapsed</div><div class="strong numeric" id="expand-elapsed">0s</div></div>
+        </div>
+
+        <p class="tiny muted" style="margin-top:var(--s-4)">
+          If you are able to, calling emergency services now is never the wrong choice.
+        </p>
+        <a class="btn btn--danger" href="tel:112" style="margin-top:var(--s-3)">Call 112</a>
+      </div>
+    </section>
+
+    <!-- ⑧ TERMINAL — no_responder_found. Deliberately not an error page. -->
+    <section id="state-none" hidden>
+      <div class="card">
+        <div class="terminal">
+          <div class="terminal__icon">📞</div>
+          <h2 class="terminal__title">No responder was available</h2>
+          <p class="terminal__body">
+            We searched out to 3&nbsp;km and could not reach a verified responder.
+            Please contact emergency services directly — they remain the fastest
+            route to professional help.
+          </p>
+          <a class="btn btn--danger btn--lg btn--block" href="tel:112">Call 112 — Emergency Services</a>
+          <p class="tiny muted" style="margin-top:var(--s-4)">
+            Your request stays on record so the network can see where cover is missing.
+          </p>
+          <button class="btn btn--ghost" id="restart-button" style="margin-top:var(--s-4)">Start a new request</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="state-switch" id="state-switch" hidden>
+  <span>Preview state</span>
+  <select id="state-select">
+    <option value="">live</option>
+    <option value="idle">idle</option>
+    <option value="active">responder assigned</option>
+    <option value="expanding">expanding search</option>
+    <option value="none">no responder found</option>
+  </select>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module" src="/app/citizen/citizen.js"></script>
+</body>
+</html>

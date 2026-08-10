@@ -1,0 +1,160 @@
+/* Reset, typography and layout primitives shared by all three role views. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--surface-alt);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+h1 { font-size: var(--text-2xl); }
+h2 { font-size: var(--text-xl); }
+h3 { font-size: var(--text-lg); }
+
+a {
+  color: var(--blue);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* The `hidden` attribute must beat every display rule below it. Without this,
+   any element carrying .stack (display:flex) or .grid stays visible while
+   claiming to be hidden -- which silently showed all four citizen states at
+   once until a DOM check caught it. */
+[hidden] {
+  display: none !important;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---- App shell -------------------------------------------------------- */
+/* Mobile first: the sidebar is a bottom bar on narrow screens and only
+   becomes a sidebar once there is room for one. */
+
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+}
+
+.app__main {
+  padding: var(--s-4);
+  padding-bottom: calc(var(--s-8) + var(--s-6)); /* clear the mobile nav */
+  overflow-x: hidden;
+}
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: var(--sidebar-w) 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .app__sidebar {
+    grid-row: 1 / -1;
+  }
+  .app__main {
+    padding: var(--s-5) var(--s-6);
+    padding-bottom: var(--s-6);
+  }
+}
+
+/* ---- Layout helpers --------------------------------------------------- */
+
+.stack        { display: flex; flex-direction: column; gap: var(--s-4); }
+.stack--tight { gap: var(--s-2); }
+.stack--loose { gap: var(--s-5); }
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+.row--between { justify-content: space-between; }
+.row--tight   { gap: var(--s-2); }
+.row--nowrap  { flex-wrap: nowrap; }
+
+.grid { display: grid; gap: var(--s-4); }
+
+.grid--stats {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.grid--halves {
+  grid-template-columns: 1fr;
+}
+.grid--sos {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 900px) {
+  .grid--halves { grid-template-columns: 1fr 1fr; }
+  .grid--sos    { grid-template-columns: minmax(300px, 380px) 1fr; }
+}
+
+.spacer { flex: 1; }
+
+/* Wide content must scroll inside itself rather than pushing the page. */
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.muted    { color: var(--muted); }
+.small    { font-size: var(--text-sm); }
+.tiny     { font-size: var(--text-xs); }
+.strong   { font-weight: 600; }
+.numeric  { font-variant-numeric: tabular-nums; }
+.center   { text-align: center; }

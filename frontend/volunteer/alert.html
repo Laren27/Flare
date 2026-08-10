@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Incoming Alert — FLARE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/app/shared/tokens.css">
+<link rel="stylesheet" href="/app/shared/base.css">
+<link rel="stylesheet" href="/app/shared/components.css">
+<style>
+  body { display: grid; place-items: center; padding: var(--s-4); background: var(--navy); }
+  .phone-frame {
+    width: min(390px, 100%); background: var(--surface-alt);
+    border-radius: 28px; overflow: hidden; box-shadow: var(--shadow-lg);
+  }
+  .phone-frame__status {
+    display: flex; justify-content: space-between; padding: var(--s-2) var(--s-4);
+    font-size: var(--text-xs); font-weight: 600; background: var(--white);
+  }
+  .screen { padding: var(--s-4); min-height: 560px; }
+</style>
+</head>
+<body>
+
+<div class="stack" style="align-items:center">
+  <div class="phone-frame">
+    <div class="phone-frame__status"><span>9:41</span><span>▮▮▮ ⌁</span></div>
+
+    <div class="screen stack">
+
+      <!-- ③a Incoming alert -->
+      <section id="view-incoming" class="stack">
+        <div class="row row--tight" style="color:var(--flare-red);font-weight:700">
+          <span>🔔</span><span>Incoming Alert</span>
+        </div>
+
+        <div class="card stack">
+          <div class="row row--nowrap">
+            <div class="avatar" style="background:var(--red-tint);color:var(--flare-red)">❤️</div>
+            <div>
+              <div class="strong" id="category">Cardiac Arrest</div>
+              <div class="tiny muted"><span id="distance">1.2 km</span> away</div>
+              <div class="tiny muted" id="area">MG Road, Bangalore</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="stat__label">Reported</div>
+            <div class="small" id="description">Collapsed, not breathing</div>
+          </div>
+
+          <div>
+            <div class="stat__label">Required Skills</div>
+            <div class="row row--tight" style="margin-top:var(--s-1)">
+              <span class="chip">CPR</span><span class="chip chip--info">First Aid</span>
+            </div>
+          </div>
+
+          <div class="map" style="height:150px" id="mini-map">
+            <div class="map__fallback"><div><div style="font-size:1.5rem">📍</div>
+              <p class="small">Incident location</p></div></div>
+          </div>
+        </div>
+
+        <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)">
+          <button class="btn btn--outline-danger" id="decline">DECLINE</button>
+          <button class="btn btn--success" id="accept">ACCEPT</button>
+        </div>
+      </section>
+
+      <!-- ③b Already accepted. This screen IS the accept-lock (ADR-011) made
+           visible: the database refused a second claim, and the responder is
+           told so plainly. Neutral, not an error -- losing a race you entered
+           in good faith is not a mistake, and styling it red would punish
+           people for volunteering. -->
+      <section id="view-handled" class="stack" hidden>
+        <div class="card">
+          <div class="terminal">
+            <div class="terminal__icon" style="background:var(--green-tint)">✓</div>
+            <h2 class="terminal__title">Already handled</h2>
+            <p class="terminal__body">
+              <span class="strong" id="winner-name">Another responder</span> accepted this
+              incident <span id="winner-when">a moment</span> before you. No further action
+              is needed — help is on the way.
+            </p>
+            <span class="pill pill--success">Incident matched</span>
+            <p class="tiny muted" style="margin-top:var(--s-5)">
+              Only the first acceptance is assigned. The lock is enforced by the database,
+              so exactly one responder is ever dispatched to an incident.
+            </p>
+            <a class="btn btn--ghost" href="/app/volunteer/" style="margin-top:var(--s-4)">Back to dashboard</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ③c Accepted -->
+      <section id="view-accepted" class="stack" hidden>
+        <div class="card">
+          <div class="terminal">
+            <div class="terminal__icon" style="background:var(--green-tint)">🚑</div>
+            <h2 class="terminal__title">You are assigned</h2>
+            <p class="terminal__body">Head to the incident. The citizen can see you are on the way.</p>
+            <a class="btn btn--success btn--block" href="#navigate">Navigate to incident</a>
+          </div>
+        </div>
+      </section>
+
+      <div id="message" class="toast" hidden></div>
+    </div>
+  </div>
+
+  <div class="row row--tight small" style="color:#94a3b8">
+    <span>Preview:</span>
+    <a href="?view=incoming" style="color:#cbd5e1">incoming</a>
+    <a href="?view=handled" style="color:#cbd5e1">already accepted</a>
+    <a href="?view=accepted" style="color:#cbd5e1">assigned</a>
+  </div>
+</div>
+
+<script type="module">
+import { api, auth } from "/app/shared/api.js";
+import { formatDistance } from "/app/shared/map.js";
+import { mockAlert } from "/app/shared/mock.js";
+
+const params = new URLSearchParams(location.search);
+const views = ["incoming", "handled", "accepted"];
+const show = (name) => views.forEach((v) => {
+  document.getElementById(`view-${v}`).hidden = v !== name;
+});
+
+const sosId = Number(params.get("sos"));
+const alertData = sosId
+  ? {
+      sos_id: sosId,
+      distance_m: Number(params.get("distance") || 0),
+      description: params.get("description") || "No description provided",
+      ai_category: params.get("category") || "Unspecified emergency",
+    }
+  : mockAlert;
+
+document.getElementById("category").textContent = alertData.ai_category || "Unspecified emergency";
+document.getElementById("description").textContent = alertData.description || "No description provided";
+document.getElementById("distance").textContent = formatDistance(alertData.distance_m || 0);
+
+show(params.get("view") && views.includes(params.get("view")) ? params.get("view") : "incoming");
+
+function message(text, kind) {
+  const node = document.getElementById("message");
+  node.textContent = text;
+  node.className = `toast toast--${kind}`;
+  node.hidden = false;
+}
+
+document.getElementById("accept").addEventListener("click", async () => {
+  if (!sosId) { show("accepted"); return; }        // preview mode
+  if (!auth.isAuthenticated) { location.href = "/app/login.html"; return; }
+  try {
+    const result = await api.acceptSos(sosId);
+    // `accepted: false` is a normal outcome of a race, not an error -- the
+    // endpoint returns 200 for both sides precisely so the UI can say this.
+    show(result.accepted ? "accepted" : "handled");
+  } catch (error) {
+    message(error.detail || error.message, "error");
+  }
+});
+
+document.getElementById("decline").addEventListener("click", async () => {
+  if (sosId && auth.isAuthenticated) await api.declineSos(sosId).catch(() => {});
+  location.href = "/app/volunteer/";
+});
+</script>
+</body>
+</html>

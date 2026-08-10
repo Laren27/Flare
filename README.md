@@ -5,11 +5,29 @@ finds nearby verified responders with relevant skills, alerts them over
 WebSockets, and logs every dispatch decision so the network's failures can be
 measured rather than guessed at.
 
-**Status: week 4 of 8.** The dispatch loop is correct end to end: an SOS reaches
-nearby responders over WebSockets, exactly one responder can claim it, and an
-incident nobody takes escalates 1km → 2km → 3km before terminating in an
-explicit `no_responder_found`. Clients and analytics land in later weeks; see
-the roadmap in [Chapter 24 of the blueprint](docs/FLARE_Engineering_Blueprint_v2.md).
+**Status: week 5 of 8.** The dispatch loop is correct end to end and now has a
+face: citizen, volunteer and admin views served from the same origin as the API.
+An SOS reaches nearby responders over WebSockets, exactly one can claim it, and
+an incident nobody takes escalates 1km → 2km → 3km before terminating in an
+explicit `no_responder_found`. Analytics queries and the AI summary land in week
+6; see the roadmap in [Chapter 24 of the blueprint](docs/FLARE_Engineering_Blueprint_v2.md).
+
+## The app
+
+With the server running, open **http://127.0.0.1:8000/app/**.
+
+| View | Path | Live or mock |
+|---|---|---|
+| Landing | `/app/` | static |
+| Sign in / register | `/app/login.html` | live |
+| Citizen | `/app/citizen/` | **live** — SOS, escalation, terminal states |
+| Volunteer | `/app/volunteer/` | **live** — WebSocket alerts, accept-lock |
+| Volunteer alert | `/app/volunteer/alert.html` | live, with preview states |
+| Admin | `/app/admin/` | mock — Ch. 18A layout, week 6 queries |
+
+Hard-to-summon states can be previewed without staging an incident:
+`/app/citizen/?state=expanding`, `?state=none`, and
+`/app/volunteer/alert.html?view=handled`.
 
 The blueprint is the authoritative spec. Architectural decisions, including the
 decisions *not* to build things, live in its Chapter 4 (ADR).

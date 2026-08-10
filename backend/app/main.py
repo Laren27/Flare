@@ -11,6 +11,8 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
 from app.routers import auth, sos, ws
@@ -58,6 +60,16 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(sos.router)
     app.include_router(ws.router)
+
+    # Mounted last so it cannot shadow an API route. html=True serves
+    # directory index.html, which is what makes /app/citizen/ work.
+    frontend = get_settings().frontend_dir
+    if frontend.is_dir():
+        app.mount("/app", StaticFiles(directory=frontend, html=True), name="frontend")
+
+    @app.get("/", include_in_schema=False)
+    async def root() -> RedirectResponse:
+        return RedirectResponse(url="/app/")
 
     return app
 

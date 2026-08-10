@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLARE — Fast Local Alert &amp; Response Engine</title>
+<meta name="description" content="FLARE connects people in need with nearby trained responders in real time.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/app/shared/tokens.css">
+<link rel="stylesheet" href="/app/shared/base.css">
+<link rel="stylesheet" href="/app/shared/components.css">
+<style>
+  .hero {
+    background: var(--navy);
+    color: var(--white);
+    padding: var(--s-6) var(--s-4) var(--s-8);
+  }
+  .hero__nav {
+    display: flex; align-items: center; gap: var(--s-5);
+    margin-bottom: var(--s-8); flex-wrap: wrap;
+  }
+  .hero__links { display: none; gap: var(--s-5); font-size: var(--text-sm); }
+  .hero__links a { color: #cbd5e1; }
+  .hero__links a[aria-current] { color: var(--white); font-weight: 600; text-decoration: underline; }
+  .hero__grid { display: grid; gap: var(--s-6); align-items: center; }
+  .hero h1 {
+    font-size: var(--text-display); line-height: 1.08; letter-spacing: -0.03em;
+    margin-bottom: var(--s-4);
+  }
+  .hero p.lede { color: #cbd5e1; font-size: var(--text-lg); max-width: 46ch; margin-bottom: var(--s-5); }
+
+  .phone {
+    justify-self: center;
+    width: min(300px, 80vw); aspect-ratio: 9 / 17;
+    border-radius: 36px; border: 8px solid #1e293b;
+    background: radial-gradient(circle at 50% 42%, #1e293b, #0b1220 70%);
+    display: grid; place-items: center; box-shadow: var(--shadow-lg);
+    position: relative; overflow: hidden;
+  }
+  .phone__rings { position: absolute; display: grid; place-items: center; }
+  .phone__rings span {
+    position: absolute; border-radius: 50%; border: 2px solid rgb(239 68 68 / 35%);
+  }
+  .phone__rings span:nth-child(1) { width: 120px; height: 120px; }
+  .phone__rings span:nth-child(2) { width: 190px; height: 190px; }
+  .phone__rings span:nth-child(3) { width: 260px; height: 260px; }
+  .phone__pin {
+    width: 66px; height: 66px; border-radius: 50% 50% 50% 4px;
+    transform: rotate(-45deg);
+    background: var(--flare-red); display: grid; place-items: center;
+    box-shadow: var(--shadow-red); position: relative;
+  }
+  .phone__pin span { transform: rotate(45deg); color: #fff; font: 700 13px/1 var(--font-display); }
+
+  .features {
+    display: grid; gap: var(--s-5); padding: var(--s-7) var(--s-4);
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    max-width: 1100px; margin-inline: auto;
+  }
+  .feature { text-align: center; }
+  .feature__icon {
+    width: 46px; height: 46px; margin: 0 auto var(--s-3);
+    display: grid; place-items: center; font-size: 1.4rem;
+  }
+  .feature h3 { font-size: var(--text-base); margin-bottom: var(--s-2); }
+
+  .roles { max-width: 1100px; margin: 0 auto var(--s-8); padding: 0 var(--s-4); }
+  .roles__grid { display: grid; gap: var(--s-4); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+
+  footer { padding: var(--s-6) var(--s-4); border-top: 1px solid var(--line); }
+
+  @media (min-width: 760px) {
+    .hero { padding: var(--s-6) var(--s-7) var(--s-8); }
+    .hero__links { display: flex; }
+    .hero__grid { grid-template-columns: 1.1fr 0.9fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <nav class="hero__nav">
+    <a class="brand brand--light" href="/app/">
+      <span class="brand__mark">🔥</span>
+      <span>
+        FLARE
+        <span class="tiny" style="display:block;font-weight:400;color:#94a3b8;font-family:var(--font-sans)">
+          Fast Local Alert &amp; Response Engine
+        </span>
+      </span>
+    </a>
+    <div class="spacer"></div>
+    <div class="hero__links">
+      <a href="#home" aria-current="page">Home</a>
+      <a href="#about">About</a>
+      <a href="#how">How it Works</a>
+      <a href="#volunteers">For Volunteers</a>
+    </div>
+    <a class="btn btn--outline-danger" href="/app/login.html">Login</a>
+  </nav>
+
+  <div class="hero__grid" id="home">
+    <div>
+      <h1>When seconds matter, community comes first.</h1>
+      <p class="lede">
+        FLARE connects people in need with nearby trained responders in real time —
+        in the minutes before an ambulance can arrive.
+      </p>
+      <div class="row">
+        <a class="btn btn--danger btn--lg" href="/app/citizen/">Request Help</a>
+        <a class="btn btn--lg" style="background:#1e293b;color:#fff" href="/app/login.html?signup=volunteer">
+          Become a Volunteer
+        </a>
+      </div>
+    </div>
+
+    <div class="phone" aria-hidden="true">
+      <div class="phone__rings"><span></span><span></span><span></span></div>
+      <div class="phone__pin"><span>SOS</span></div>
+    </div>
+  </div>
+</header>
+
+<section class="features" id="how">
+  <div class="feature">
+    <div class="feature__icon">🔔</div>
+    <h3>Real-time Alerts</h3>
+    <p class="small muted">Instantly notify nearby trained responders over a live connection.</p>
+  </div>
+  <div class="feature">
+    <div class="feature__icon">👥</div>
+    <h3>Trained Volunteers</h3>
+    <p class="small muted">Every responder is verified by an admin before they can be dispatched.</p>
+  </div>
+  <div class="feature">
+    <div class="feature__icon">📍</div>
+    <h3>Live Tracking</h3>
+    <p class="small muted">Follow your responder on the map with a straight-line ETA.</p>
+  </div>
+  <div class="feature">
+    <div class="feature__icon">📊</div>
+    <h3>Data Driven</h3>
+    <p class="small muted">Every dispatch decision is logged, so coverage gaps can be found and fixed.</p>
+  </div>
+</section>
+
+<section class="roles" id="volunteers">
+  <div class="roles__grid">
+    <a class="card" href="/app/citizen/" style="color:inherit">
+      <h3>I need help</h3>
+      <p class="small muted" style="margin-top:var(--s-2)">
+        One button broadcasts your emergency and location to nearby responders.
+      </p>
+    </a>
+    <a class="card" href="/app/volunteer/" style="color:inherit">
+      <h3>I can help</h3>
+      <p class="small muted" style="margin-top:var(--s-2)">
+        Declare your skills, go online, and receive alerts only when you are in range.
+      </p>
+    </a>
+    <a class="card" href="/app/admin/" style="color:inherit">
+      <h3>I run the network</h3>
+      <p class="small muted" style="margin-top:var(--s-2)">
+        Verify responders, watch active incidents, and see where coverage is failing.
+      </p>
+    </a>
+  </div>
+</section>
+
+<section class="roles" id="about">
+  <div class="card">
+    <h3>What FLARE is not</h3>
+    <p class="small muted" style="margin-top:var(--s-2);max-width:70ch">
+      FLARE is a bridging layer, not a replacement for ambulances, hospitals or emergency
+      medical services. It exists to get someone qualified to the scene in the minutes before
+      professional help arrives. It makes no clinical claim and no guarantee that a responder
+      will be available — when none is, it says so plainly and points you to emergency services.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <p class="small muted center">FLARE — a student engineering project. Not a substitute for emergency services.</p>
+</footer>
+
+</body>
+</html>

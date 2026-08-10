@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in — FLARE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/app/shared/tokens.css">
+<link rel="stylesheet" href="/app/shared/base.css">
+<link rel="stylesheet" href="/app/shared/components.css">
+<style>
+  body { display: grid; place-items: center; padding: var(--s-4); }
+  .auth { width: min(400px, 100%); }
+  .auth__brand { justify-content: center; margin-bottom: var(--s-5); }
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); margin-bottom: var(--s-5); }
+  .tab {
+    padding: var(--s-2); border-radius: var(--radius); border: 1px solid var(--line);
+    background: var(--white); font-size: var(--text-sm); font-weight: 600; cursor: pointer;
+  }
+  .tab[aria-selected="true"] { background: var(--navy); color: var(--white); border-color: var(--navy); }
+</style>
+</head>
+<body>
+
+<main class="auth">
+  <a class="brand auth__brand" href="/app/"><span class="brand__mark">🔥</span> FLARE</a>
+
+  <div class="card">
+    <div class="tabs" role="tablist">
+      <button class="tab" id="tab-login" role="tab" aria-selected="true">Sign in</button>
+      <button class="tab" id="tab-signup" role="tab" aria-selected="false">Create account</button>
+    </div>
+
+    <form id="form" class="stack" novalidate>
+      <div class="field" id="name-field" hidden>
+        <label class="field__label" for="name">Full name</label>
+        <input class="input" id="name" name="name" autocomplete="name">
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="phone">Phone number</label>
+        <input class="input" id="phone" name="phone" inputmode="tel" autocomplete="tel"
+               placeholder="+919000000000" required>
+        <p class="tiny muted">Your phone number is your sign-in identifier.</p>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="password">Password</label>
+        <input class="input" id="password" name="password" type="password"
+               autocomplete="current-password" required>
+      </div>
+
+      <div class="field" id="role-field" hidden>
+        <label class="field__label" for="role">I am a</label>
+        <select class="input" id="role" name="role">
+          <option value="citizen">Citizen — I may need help</option>
+          <option value="volunteer">Volunteer — I can respond</option>
+        </select>
+        <p class="tiny muted">
+          Admin accounts are created out of band, not here — admins approve responder
+          certificates, so that trust cannot be self-granted.
+        </p>
+      </div>
+
+      <div id="message" class="toast" hidden></div>
+
+      <button class="btn btn--danger btn--block" id="submit" type="submit">Sign in</button>
+    </form>
+  </div>
+
+  <p class="tiny muted center" style="margin-top:var(--s-4)">
+    Demo responders seeded by <code>sim/seed.py</code> sign in with their phone and the
+    password printed by that script.
+  </p>
+</main>
+
+<script type="module">
+import { api, auth } from "/app/shared/api.js";
+
+const HOME = { citizen: "/app/citizen/", volunteer: "/app/volunteer/", admin: "/app/admin/" };
+
+const form = document.getElementById("form");
+const message = document.getElementById("message");
+const submit = document.getElementById("submit");
+const tabLogin = document.getElementById("tab-login");
+const tabSignup = document.getElementById("tab-signup");
+const nameField = document.getElementById("name-field");
+const roleField = document.getElementById("role-field");
+
+let mode = new URLSearchParams(location.search).has("signup") ? "signup" : "login";
+
+function render() {
+  const signingUp = mode === "signup";
+  tabLogin.setAttribute("aria-selected", String(!signingUp));
+  tabSignup.setAttribute("aria-selected", String(signingUp));
+  nameField.hidden = !signingUp;
+  roleField.hidden = !signingUp;
+  document.getElementById("name").required = signingUp;
+  document.getElementById("password").autocomplete = signingUp ? "new-password" : "current-password";
+  submit.textContent = signingUp ? "Create account" : "Sign in";
+  message.hidden = true;
+}
+
+const preset = new URLSearchParams(location.search).get("signup");
+if (preset === "volunteer" || preset === "citizen") {
+  document.getElementById("role").value = preset;
+}
+
+tabLogin.addEventListener("click", () => { mode = "login"; render(); });
+tabSignup.addEventListener("click", () => { mode = "signup"; render(); });
+render();
+
+function show(text, kind = "error") {
+  message.textContent = text;
+  message.className = `toast toast--${kind}`;
+  message.hidden = false;
+}
+
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  submit.disabled = true;
+  const data = Object.fromEntries(new FormData(form));
+
+  try {
+    if (mode === "signup") {
+      await api.signup({
+        name: data.name.trim(),
+        phone: data.phone.trim(),
+        password: data.password,
+        role: data.role,
+      });
+    }
+    const token = await api.login(data.phone.trim(), data.password);
+    auth.save(token.access_token, null);
+    const user = await api.me();
+    auth.save(token.access_token, user);
+    location.href = HOME[user.role] ?? "/app/";
+  } catch (error) {
+    show(error.detail || error.message || "Something went wrong.");
+    submit.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

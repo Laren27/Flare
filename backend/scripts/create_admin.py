@@ -62,7 +62,15 @@ def main() -> None:
     parser.add_argument("--phone", required=True, help="login identifier; must be unique")
     args = parser.parse_args()
 
-    asyncio.run(create_admin(args.name, args.phone, read_password()))
+    coroutine = create_admin(args.name, args.phone, read_password())
+
+    # Same constraint as run.py and the test suite (ADR-020): psycopg's async
+    # mode cannot run on Windows' default ProactorEventLoop, and asyncio.run
+    # builds one. Every entry point that opens a connection has to say so.
+    if sys.platform == "win32":
+        asyncio.run(coroutine, loop_factory=asyncio.SelectorEventLoop)
+    else:
+        asyncio.run(coroutine)
 
 
 if __name__ == "__main__":

@@ -48,6 +48,11 @@ class Settings(BaseSettings):
     # How long a wave may sit un-accepted before condition B fires (ADR-012).
     accept_timeout_seconds: int = 30
 
+    # The role views of Ch. 11, served by this app rather than a second host.
+    # Same origin means no CORS layer to configure and no chance of the two
+    # drifting apart in deployment (Ch. 23 allows either).
+    frontend_dir: Path = BACKEND_DIR.parent / "frontend"
+
 
 @lru_cache
 def get_settings() -> Settings:
