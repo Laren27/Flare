@@ -12,6 +12,7 @@ would add boilerplate to a one-shot command that has nothing to overlap with.
 from logging.config import fileConfig
 
 from sqlalchemy import create_engine, pool
+from sqlalchemy.engine import URL, make_url
 
 from alembic import context
 from app.config import get_settings
@@ -29,8 +30,10 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
-def get_url() -> str:
-    return get_settings().database_url
+def get_url() -> URL:
+    """A URL object, not a string: its repr masks the password, so a failed
+    migration cannot print the credential into the traceback."""
+    return make_url(get_settings().database_url.get_secret_value())
 
 
 def run_migrations_offline() -> None:

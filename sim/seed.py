@@ -22,6 +22,7 @@ BACKEND = Path(__file__).resolve().parents[1] / "backend"
 sys.path.insert(0, str(BACKEND))
 
 from sqlalchemy import create_engine, text  # noqa: E402
+from sqlalchemy.engine import make_url  # noqa: E402
 
 from app.config import get_settings  # noqa: E402
 from app.services.auth import hash_password  # noqa: E402
@@ -68,7 +69,7 @@ def main() -> None:
     args = parser.parse_args()
 
     rng = random.Random(args.seed)
-    engine = create_engine(get_settings().database_url)
+    engine = create_engine(make_url(get_settings().database_url.get_secret_value()))
 
     if args.reset:
         with engine.begin() as c:

@@ -4,10 +4,17 @@
 missing either fails loudly at startup rather than falling back to a guessable
 signing key -- a silent default here would be the exact kind of quiet failure
 Chapter 22 forbids.
+
+Both are `SecretStr`, so neither renders in a repr, a log line, or a traceback.
+This is not hypothetical tidiness: a failing test printed the full DSN,
+password and all, into pytest output before this change. A credential only has
+to be written somewhere readable once.
 """
 
 from functools import lru_cache
 from pathlib import Path
+
+from pydantic import SecretStr
 
 # pydantic-settings: typed, validated parsing of environment variables,
 # consistent with the Ch. 20 convention of a Pydantic model for structured input.
@@ -26,8 +33,10 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    database_url: str
-    jwt_secret: str
+    # SecretStr: reading the value is an explicit .get_secret_value() call, so a
+    # credential can never reach output by accident -- only on purpose.
+    database_url: SecretStr
+    jwt_secret: SecretStr
     jwt_algorithm: str = "HS256"
     jwt_expiry_minutes: int = 60
 

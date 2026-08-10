@@ -17,26 +17,30 @@ from pathlib import Path
 
 import pytest
 from sqlalchemy import create_engine, text
-from sqlalchemy.engine import make_url
+from sqlalchemy.engine import URL, make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 TEST_DB_SUFFIX = "_test"
 
 
-def _test_database_url() -> str:
-    """Derive the test URL from DATABASE_URL by suffixing the database name."""
+def _test_database_url() -> URL:
+    """Derive the test URL from DATABASE_URL by suffixing the database name.
+
+    Returns a `URL` object rather than a string throughout this module. A URL's
+    repr masks the password, so if one appears in a pytest traceback -- as a
+    fixture argument, or in a frame's locals -- it renders as `***` instead of
+    the credential. A plain string offers no such protection, which is how a
+    failing test came to print the full DSN before this was changed.
+    """
     from app.config import get_settings
 
-    url = make_url(get_settings().database_url)
-    return url.set(database=f"{url.database}{TEST_DB_SUFFIX}").render_as_string(
-        hide_password=False
-    )
+    url = make_url(get_settings().database_url.get_secret_value())
+    return url.set(database=f"{url.database}{TEST_DB_SUFFIX}")
 
 
-def _ensure_database(url: str) -> None:
+def _ensure_database(target: URL) -> None:
     """CREATE DATABASE if absent, connecting via the server's default database."""
-    target = make_url(url)
     admin = target.set(database="postgres")
 
     # AUTOCOMMIT: CREATE DATABASE cannot run inside a transaction block.
@@ -68,14 +72,16 @@ def _migrate() -> None:
 
 
 @pytest.fixture(scope="session")
-def test_database_url() -> str:
+def test_database_url() -> URL:
     from app.config import get_settings
 
     url = _test_database_url()
     _ensure_database(url)
 
     previous = os.environ.get("DATABASE_URL")
-    os.environ["DATABASE_URL"] = url
+    # The one place the plaintext DSN is unavoidable -- env vars are strings.
+    # Kept inside this function and never returned or stored.
+    os.environ["DATABASE_URL"] = url.render_as_string(hide_password=False)
     get_settings.cache_clear()  # settings are cached; the override must win
     try:
         _migrate()

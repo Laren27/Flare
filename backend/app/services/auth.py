@@ -81,7 +81,9 @@ def create_access_token(user: User) -> IssuedToken:
         "iat": issued_at,
         "exp": issued_at + timedelta(seconds=expires_in),
     }
-    token = jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+    token = jwt.encode(
+        payload, settings.jwt_secret.get_secret_value(), algorithm=settings.jwt_algorithm
+    )
     return IssuedToken(access_token=token, expires_in=expires_in)
 
 
@@ -91,7 +93,7 @@ def decode_access_token(token: str) -> TokenClaims:
     try:
         payload = jwt.decode(
             token,
-            settings.jwt_secret,
+            settings.jwt_secret.get_secret_value(),
             algorithms=[settings.jwt_algorithm],
             options={"require": ["exp", "sub", "role"]},
         )

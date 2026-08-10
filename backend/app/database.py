@@ -16,6 +16,7 @@ fast on missing configuration, in `app.main.create_app`.
 from collections.abc import AsyncIterator
 from functools import lru_cache
 
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -28,8 +29,10 @@ class Base(DeclarativeBase):
 
 @lru_cache
 def get_engine() -> AsyncEngine:
+    # make_url turns the DSN into a URL object whose repr masks the password, so
+    # a connection failure cannot print the credential into a traceback.
     return create_async_engine(
-        get_settings().database_url,
+        make_url(get_settings().database_url.get_secret_value()),
         # Hosted Postgres drops idle connections; without pre-ping the first query
         # after an idle period fails on a stale connection. Reliability, not tuning.
         pool_pre_ping=True,
