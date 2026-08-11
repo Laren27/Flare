@@ -102,7 +102,8 @@ seeded, you should see the search widen and terminate in
   invisible to a dispatch running on worker B, and would be recorded
   `no_socket`. Redis pub/sub is the production answer and is named in Future
   Scope (Ch. 26), not built.
-- **No rate limiting** on `/auth/login`. Named in the security notes below.
+- **No rate limiting** on `/auth/login` — a deliberate omission, recorded in
+  Future Scope (Ch. 26) and in the security notes below, not an oversight.
 
 ## Security posture (Ch. 22)
 
@@ -129,5 +130,8 @@ Not done, stated openly:
   objection ADR-011 makes to an in-process lock.
 - **No HIPAA-grade or production-grade data-security claim.** Chapter 22 says
   this explicitly and it is repeated here so nobody infers otherwise.
-- **Leaflet and fonts load from CDN.** Vendoring is the fix; see the demo
-  contingency in `DEMO_SCRIPT.md` for the meantime.
+- **Leaflet and fonts load from CDN.** Accepted deliberately — the demo venue
+  has reliable network, and map tiles need it regardless. The CSP allowlists
+  exactly `unpkg.com`, Google Fonts and OSM tiles rather than opening up, so
+  vendoring later tightens the policy by subtraction. Leaflet degrades to a
+  styled placeholder if it cannot load. Recorded in Future Scope (Ch. 26).
