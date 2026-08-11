@@ -40,4 +40,5 @@ async def create_sos(
         first_dispatch_at=result.sos.first_dispatch_at,
         candidates=[CandidateOut.model_validate(c) for c in result.candidates],
         evaluated_count=result.evaluated_count,
+        alerted_count=result.alerted_count,
     )
