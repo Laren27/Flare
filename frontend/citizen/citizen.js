@@ -21,6 +21,7 @@ import {
   responderMarker,
   showFallback,
 } from "../shared/map.js";
+import { initNav } from "../shared/nav.js";
 import { CENTRE, mockIncident, mockResponder } from "../shared/mock.js";
 
 const STATES = ["idle", "active", "expanding", "none"];
@@ -222,6 +223,9 @@ function wireStateSwitch() {
 }
 
 async function boot() {
+  // Before the preview-state early return: the sidebar exists on every
+  // path, so its behaviour has to be wired on every path.
+  initNav();
   el("state-select").value = forcedState ?? "";
 
   if (forcedState && STATES.includes(forcedState)) {
