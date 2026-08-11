@@ -179,12 +179,17 @@
 
     <div class="grid grid--halves">
       <div class="card" id="volunteers">
-        <div class="card__header"><h3 class="card__title">Pending Verification</h3></div>
+        <div class="card__header">
+          <h3 class="card__title">Pending Verification</h3>
+          <span class="pill pill--muted">Future Scope</span>
+        </div>
+        <div class="toast toast--info" style="margin-bottom:var(--s-4)">
+          <strong>Not built.</strong> Certificate upload and admin approval need a
+          <code>certificate_path</code> column that does not exist, so the rows below are
+          sample data and the buttons are disabled. Manual approval is the deliberate
+          design (ADR-006) — automated document verification is a project of its own.
+        </div>
         <div class="scroll-x"><table class="table" id="pending-table"></table></div>
-        <p class="tiny muted" style="margin-top:var(--s-3)">
-          <strong>Sample data.</strong> Certificate upload and approval are not built —
-          they need a schema change (ADR-006). Manual approval is the design, not an omission.
-        </p>
       </div>
 
       <div class="card" id="incidents">
