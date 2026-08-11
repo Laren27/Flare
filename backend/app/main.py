@@ -43,15 +43,64 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
+# Sent on every response (Ch. 22). None of these are exotic; their absence is
+# simply something nobody had checked until the week 7 security pass.
+#
+# The CSP allows the two CDNs the frontend actually uses -- unpkg for Leaflet
+# and Google Fonts -- plus OpenStreetMap tiles. It is deliberately written as an
+# allowlist of things that exist rather than a permissive default: when Leaflet
+# is vendored locally, the unpkg entries come out and the policy tightens by
+# subtraction. 'unsafe-inline' for styles is required by Leaflet's own inline
+# marker styling and is noted as the one concession.
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "geolocation=(self), camera=(), microphone=(), payment=()",
+    "Content-Security-Policy": "; ".join(
+        [
+            "default-src 'self'",
+            "script-src 'self' https://unpkg.com",
+            "style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com",
+            "font-src 'self' https://fonts.gstatic.com",
+            "img-src 'self' data: https://*.tile.openstreetmap.org https://unpkg.com",
+            "connect-src 'self'",
+            "frame-ancestors 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+        ]
+    ),
+}
+
+
 def create_app() -> FastAPI:
-    get_settings()  # fail fast on missing configuration
+    settings = get_settings()  # fail fast on missing configuration
 
     app = FastAPI(
         title="FLARE",
         summary="Fast Local Alert & Response Engine",
         version="0.1.0",
         lifespan=lifespan,
+        # Off in production: /docs and /openapi.json enumerate every endpoint
+        # and schema in the system (Ch. 22).
+        docs_url=settings.docs_url,
+        redoc_url=None,
+        openapi_url=None if settings.is_production else "/openapi.json",
     )
+
+    @app.middleware("http")
+    async def security_headers(request, call_next):
+        response = await call_next(request)
+        for header, value in SECURITY_HEADERS.items():
+            response.headers.setdefault(header, value)
+        if settings.is_production:
+            # Only over TLS, and only in production -- setting HSTS on a plain
+            # http:// dev server would make localhost unreachable in that
+            # browser until the max-age expired.
+            response.headers.setdefault(
+                "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+            )
+        return response
 
     @app.get("/health", tags=["meta"])
     async def health() -> dict[str, str]:
