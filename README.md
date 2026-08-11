@@ -5,13 +5,20 @@ finds nearby verified responders with relevant skills, alerts them over
 WebSockets, and logs every dispatch decision so the network's failures can be
 measured rather than guessed at.
 
-**Status: week 6 of 8.** Feature-complete against Chapter 24 bar certificate
-upload. An SOS reaches nearby responders over WebSockets, exactly one can claim
-it, an incident nobody takes escalates 1km → 2km → 3km before terminating in an
-explicit `no_responder_found`, a single bounded LLM call enriches it off the
-critical path, and the admin dashboard reports all seven Chapter 18A metrics
-from named SQL files. See the roadmap in
-[Chapter 24 of the blueprint](docs/FLARE_Engineering_Blueprint_v2.md).
+**Status: complete.** An SOS reaches nearby responders over WebSockets, exactly
+one can claim it, an incident nobody takes escalates 1km → 2km → 3km before
+terminating in an explicit `no_responder_found`, a single bounded LLM call
+enriches it off the critical path, and the admin dashboard reports all seven
+Chapter 18A metrics from named SQL files.
+
+- [Deployment](docs/DEPLOYMENT.md) — hosted Postgres, environment, security posture
+- [Demo script](docs/DEMO_SCRIPT.md) — the four acts of Chapter 27, as a runbook
+- [Blueprint](docs/FLARE_Engineering_Blueprint_v2.md) — the authoritative spec and every ADR
+
+**Not built, and not claimed anywhere in the product:** certificate upload and
+admin approval (the queue is shown with its controls disabled and labelled),
+responder live location after acceptance, and Web Push. All are in Future Scope
+(Ch. 26).
 
 ## Analytics (Ch. 18A)
 
