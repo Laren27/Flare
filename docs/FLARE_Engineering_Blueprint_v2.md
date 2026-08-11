@@ -604,6 +604,12 @@ Explicitly named as *not built*, to demonstrate awareness without overclaiming:
 - Web Push (service worker + VAPID) as an intermediate reliability upgrade — conditional core stretch, see ADR-004
 - PostGIS / geospatial indexing for production-scale responder tables (ADR-002)
 - Geohash-based candidate pre-filtering at larger scale
+- Certificate upload and admin approval of responder credentials. The manual
+  approval flow of ADR-006 is designed but not built: it needs a
+  `certificate_path` column and an admin queue, and the schema change was
+  deliberately not taken in the available time. The admin dashboard shows the
+  queue's shape with its controls disabled and says plainly that it is not
+  implemented, rather than presenting a control that does nothing (Rule 007).
 - Automated OCR-based certificate verification against an authority database
 - AI-based medical triage beyond the single priority-summary call
 - Ambulance dispatch integration / hospital system integration
@@ -683,6 +689,12 @@ Chapter 4 (ADR) in the same format as existing entries.
 - v2.0 — Build model corrected from four-person team to solo + AI collaborator; 8-week timeline fixed. Added ADR-011 (accept-lock enforced by atomic conditional UPDATE, replacing unspecified mechanism), ADR-012 (radius expansion triggered by both empty-candidate-set and acceptance-timeout, via an escalation state machine), ADR-013 (AI summary removed from dispatch critical path, made concurrent with timeout and fallback), ADR-014 (structured dispatch event log), ADR-015 (analytics promoted to co-headline deliverable with seven precisely defined metrics, superseding ADR-009 in scope), ADR-016 (responder simulation harness as core scope). Added Chapter 18A (analytics specification). Rewrote Chapter 13 dispatch sequence, Chapter 12 schema (+`DispatchEvents`, funnel timestamps), Chapter 19 folder structure (+`sim/`, `tests/`, `analytics/`, `CLAUDE.md`), Chapter 21 testing (automated tests moved to required), Chapter 24 roadmap (filled: 8-week plan), Chapter 27 demo strategy (four-act solo run).
 - v2.1 — Week 1 foundation decisions recorded: ADR-017 (Alembic for schema migrations), ADR-018 (async SQLAlchemy sessions over psycopg 3), ADR-019 (PyJWT + bcrypt, JSON login body, admin accounts created out-of-band rather than by signup). Chapter 12 annotated to resolve four ambiguities surfaced while implementing it: `phone` is the unique login identifier, `Volunteers.skills` is single-valued, `ai_priority` values are `{low, medium, high}`, `IncidentHistory.sos_id` is unique. Added `Users.created_at`. Recorded that per-wave radius and candidate counts are derived from `DispatchEvents`, not stored separately.
 - v2.2 — ADR-020 (event loop selection on Windows: `backend/run.py` entry point plus a startup assertion, constraining ADR-018's async driver choice on the development platform).
+- v2.7 — Certificate upload and admin approval moved to Future Scope (Ch. 26): the
+  flow needs a schema change that was not taken. Security pass of Ch. 22 completed
+  in week 7 — interactive API docs are closed in production and security headers
+  are sent on every response; the absence of login rate limiting is recorded openly
+  in `docs/DEPLOYMENT.md` rather than papered over with an in-process counter that
+  would break under more than one worker.
 - v2.6 — ADR-024 (AI summary as a direct HTTPS call rather than a vendor SDK, with a provider switch between Google AI Studio and Groq and the key in a header rather than a query string).
 - v2.5 — ADR-023 (Incident History records the escalation trigger that initiated escalation, not the one in effect at the final rung, so ADR-015's sparse-versus-unresponsive split stays meaningful).
 - v2.4 — ADR-022 (WebSocket authentication by first-frame token rather than query string, with the path `user_id` checked against the token subject).
