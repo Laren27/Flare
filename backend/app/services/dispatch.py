@@ -1,11 +1,13 @@
 """Candidate selection for an incident (Ch. 13, steps 1-5).
 
-Week 2 scope: persist the incident, evaluate every volunteer against it, log
-each decision (ADR-014), and return the ranked candidate list. Nothing is
-delivered anywhere -- the WebSocket layer is week 3 and the escalation state
-machine of ADR-012 is week 4. Chapter 24 orders it this way on purpose: the
-selection logic is a pure-ish function of the database, and proving it before
-adding transport means week 3 debugs delivery rather than debugging both.
+Persists the incident, evaluates every volunteer against it, delivers wave-1
+alerts over live WebSocket connections, and logs every decision (ADR-014).
+
+Order matters here. Selection decides who *should* be alerted; delivery finds
+out who actually can be reached. Events are written after delivery so a
+candidate whose socket is gone is recorded as `no_socket` rather than as a
+successful alert -- the split ADR-021 set up before there was any transport to
+fail. The escalation state machine of ADR-012 is week 4.
 """
 
 from dataclasses import dataclass
@@ -15,7 +17,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import SOS, DispatchOutcome, Location, RejectionReason, SkillClass, Volunteer
-from app.services import events, haversine
+from app.services import events, haversine, notifications
+from app.services.websocket_manager import ConnectionRegistry
+from app.services.websocket_manager import registry as default_registry
 
 WAVE_ONE = 1
 
@@ -35,6 +39,9 @@ class DispatchResult:
     sos: SOS
     candidates: list[Candidate]
     evaluated_count: int
+    # Selected candidates whose alert actually reached a live socket. The gap
+    # between this and len(candidates) is the no_socket population.
+    alerted_count: int
 
 
 async def create_sos(
@@ -111,8 +118,18 @@ def evaluate_volunteer(
     )
 
 
-async def dispatch_wave_one(session: AsyncSession, sos: SOS) -> DispatchResult:
-    """Evaluate every volunteer, log every decision, return the ranked survivors."""
+async def dispatch_wave_one(
+    session: AsyncSession,
+    sos: SOS,
+    registry: ConnectionRegistry | None = None,
+) -> DispatchResult:
+    """Evaluate every volunteer, alert the survivors, log every decision.
+
+    The registry is injectable so tests and the simulation harness can drive
+    delivery without a real server; production passes the process-wide one.
+    """
+    registry = registry if registry is not None else default_registry
+
     # LEFT JOIN, not JOIN: an inner join would drop volunteers who have never
     # reported a position, and dropping a candidate without recording why is
     # exactly the silent filtering invariant 4 forbids. The victim is excluded
@@ -146,14 +163,6 @@ async def dispatch_wave_one(session: AsyncSession, sos: SOS) -> DispatchResult:
         for user_id, skill, verified, available, lat, lng in rows
     ]
 
-    await events.record_evaluations(
-        session,
-        sos_id=sos.id,
-        wave_number=WAVE_ONE,
-        radius_m=radius_m,
-        evaluations=evaluations,
-    )
-
     candidates = [
         Candidate(
             volunteer_id=evaluation.volunteer_id,
@@ -165,7 +174,44 @@ async def dispatch_wave_one(session: AsyncSession, sos: SOS) -> DispatchResult:
         for evaluation in evaluations
         if evaluation.is_selected
     ]
+    # Ranked before delivery, so alerts go out best-qualified-first rather than
+    # in whatever order the database returned rows.
     candidates.sort(key=lambda c: haversine.rank_key(c.skill, c.distance_m))
+
+    deliveries = await notifications.deliver_alerts(
+        session,
+        sos=sos,
+        wave_number=WAVE_ONE,
+        recipients=[(c.volunteer_id, c.distance_m) for c in candidates],
+        registry=registry,
+    )
+
+    # Only now are the outcomes final. A selected candidate whose socket had gone
+    # is downgraded to no_socket -- the reason exists precisely for this, and
+    # recording them as alerted would put an alert nobody received into the
+    # ADR-015 funnel.
+    undeliverable = {d.volunteer_id for d in deliveries if not d.delivered}
+    final_evaluations = [
+        events.Evaluation(
+            volunteer_id=evaluation.volunteer_id,
+            skill=evaluation.skill,
+            skill_match=evaluation.skill_match,
+            distance_m=evaluation.distance_m,
+            outcome=DispatchOutcome.REJECTED,
+            rejection_reason=RejectionReason.NO_SOCKET,
+        )
+        if evaluation.volunteer_id in undeliverable
+        else evaluation
+        for evaluation in evaluations
+    ]
+
+    await events.record_evaluations(
+        session,
+        sos_id=sos.id,
+        wave_number=WAVE_ONE,
+        radius_m=radius_m,
+        evaluations=final_evaluations,
+    )
 
     sos.wave_count = WAVE_ONE
     # Isolates system latency from human latency in ADR-015. Set once wave 1 has
@@ -174,4 +220,9 @@ async def dispatch_wave_one(session: AsyncSession, sos: SOS) -> DispatchResult:
 
     await session.commit()
 
-    return DispatchResult(sos=sos, candidates=candidates, evaluated_count=len(evaluations))
+    return DispatchResult(
+        sos=sos,
+        candidates=candidates,
+        evaluated_count=len(evaluations),
+        alerted_count=len(candidates) - len(undeliverable),
+    )
