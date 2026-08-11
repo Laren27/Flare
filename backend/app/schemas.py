@@ -91,3 +91,7 @@ class SOSCreateResponse(BaseModel):
     # len(candidates) is the first stage of the ADR-015 dispatch funnel, and
     # each one has a DispatchEvents row explaining itself.
     evaluated_count: int
+    # Selected candidates whose alert reached a live socket. The gap between
+    # this and len(candidates) is the no_socket population -- selected, but
+    # not reachable at the moment it mattered.
+    alerted_count: int
