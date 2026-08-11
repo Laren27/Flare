@@ -11,11 +11,12 @@ fail. The escalation state machine of ADR-012 is week 4.
 """
 
 import asyncio
+import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.config import get_settings
 from app.database import get_session_factory
@@ -31,6 +32,8 @@ from app.models import (
 from app.services import events, haversine, notifications
 from app.services.websocket_manager import ConnectionRegistry
 from app.services.websocket_manager import registry as default_registry
+
+logger = logging.getLogger(__name__)
 
 WAVE_ONE = 1
 
@@ -220,7 +223,13 @@ async def dispatch_wave(
     ]
     # Ranked before delivery, so alerts go out best-qualified-first rather than
     # in whatever order the database returned rows.
-    candidates.sort(key=lambda c: haversine.rank_key(c.skill, c.distance_m))
+    # Wave 1 ranks on declared skills alone; later waves rank against whatever
+    # the AI call decided the emergency is, if it landed in time (ADR-013).
+    candidates.sort(
+        key=lambda c: haversine.rank_key(c.skill, c.distance_m)
+        if wave_number == WAVE_ONE
+        else haversine.rank_key_for_category(sos.ai_category, c.skill, c.distance_m)
+    )
 
     deliveries = await notifications.deliver_alerts(
         session,
@@ -305,6 +314,13 @@ async def start_incident(
     )
     result = await dispatch_wave(session, sos, registry=registry)
 
+    # ADR-013: the AI call starts only AFTER wave 1 has gone out, and its result
+    # is never awaited here. An emergency dispatch system that waits on a
+    # third-party API before alerting anyone is contradicted by its own premise.
+    asyncio.create_task(
+        enrich_incident(sos.id, description=description, session_factory=get_session_factory())
+    )
+
     task = asyncio.create_task(
         escalation.run_escalation(
             sos.id,
@@ -319,3 +335,33 @@ async def start_incident(
     escalation.tasks.register(sos.id, task)
 
     return result
+
+
+async def enrich_incident(
+    sos_id: int,
+    *,
+    description: str | None,
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    """Attach the AI summary to an incident, out of band (ADR-013).
+
+    Runs as its own task with its own session: the request that created the
+    incident has already returned by the time this finishes, and its session is
+    closed. Nothing downstream waits on this -- if it never completes, the
+    incident simply keeps {unspecified, medium} and `ai_status` says why.
+    """
+    from app.services import ai_summary
+
+    summary = await ai_summary.summarise(description)
+
+    async with session_factory() as session:
+        sos = await session.get(SOS, sos_id)
+        if sos is None:
+            return
+        sos.ai_category = summary.category
+        sos.ai_priority = summary.priority
+        sos.ai_status = summary.status
+        await session.commit()
+
+    if summary.degraded:
+        logger.info("sos %s ai degraded: %s", sos_id, summary.status.value)
