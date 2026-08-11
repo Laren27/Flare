@@ -5,10 +5,11 @@ finds nearby verified responders with relevant skills, alerts them over
 WebSockets, and logs every dispatch decision so the network's failures can be
 measured rather than guessed at.
 
-**Status: week 3 of 8.** Auth, schema, dispatch core, and the real-time layer —
-an SOS now reaches nearby responders over live WebSocket connections. The
-accept-lock, escalation, clients and analytics land in later weeks; see the
-roadmap in [Chapter 24 of the blueprint](docs/FLARE_Engineering_Blueprint_v2.md).
+**Status: week 4 of 8.** The dispatch loop is correct end to end: an SOS reaches
+nearby responders over WebSockets, exactly one responder can claim it, and an
+incident nobody takes escalates 1km → 2km → 3km before terminating in an
+explicit `no_responder_found`. Clients and analytics land in later weeks; see
+the roadmap in [Chapter 24 of the blueprint](docs/FLARE_Engineering_Blueprint_v2.md).
 
 The blueprint is the authoritative spec. Architectural decisions, including the
 decisions *not* to build things, live in its Chapter 4 (ADR).
@@ -76,6 +77,10 @@ later on the first query.
 | `POST` | `/auth/login` | phone + password → bearer token |
 | `GET` | `/auth/me` | requires a valid, unexpired token |
 | `POST` | `/sos` | creates an incident, alerts nearby responders, returns the ranked candidate list |
+| `GET` | `/sos/{id}` | status; victim, assigned responder, or admin only |
+| `POST` | `/sos/{id}/accept` | conditional UPDATE; exactly one responder wins (ADR-011) |
+| `POST` | `/sos/{id}/decline` | records one responder's answer, not the incident's |
+| `POST` | `/sos/{id}/resolve` | closes a matched incident and writes Incident History |
 | `WS` | `/ws/{user_id}` | real-time channel; first frame must be `{"type":"auth","token":…}` (ADR-022) |
 
 ## Simulation harness (ADR-016)
@@ -87,6 +92,18 @@ cd backend && python ../sim/responder_client.py --all --limit 20
 
 `seed.py` is deterministic — the same `--seed` rebuilds the same network, which
 is what makes the demo dataset reproducible.
+
+Demo scenarios (Chapter 27, Acts 2 and 3):
+
+```bash
+python sim/scenarios/race.py --n 50
+python sim/scenarios/timeout.py --n 25
+```
+
+`race.py` fires 50 simultaneous accepts at one incident and expects exactly one
+winner. `timeout.py` connects responders who all ignore the alert, so the radius
+walks the ladder and terminates in `no_responder_found`. Shorten
+`ACCEPT_TIMEOUT_SECONDS` in `.env` to watch it without waiting 30s a rung.
 
 ## Layout
 
@@ -107,7 +124,14 @@ cd backend && pytest
 ```
 
 Deliberately narrow (Ch. 21): concurrency and distance correctness are tested,
-CRUD and views are covered by the demo run-through. `test_haversine.py` needs no
-database and no environment — the dispatch core is proven as a pure function
-before any transport exists. `test_accept_lock.py` and `test_escalation.py`
-arrive in week 4.
+CRUD and views are covered by the demo run-through.
+
+- `test_haversine.py` — no database, no environment. The dispatch core is proven
+  as a pure function before any transport exists.
+- `test_accept_lock.py` — N concurrent accepts at N ∈ {2, 10, 50}, each on its
+  own connection, asserting exactly one winner (ADR-010/011).
+- `test_escalation.py` — both ADR-012 triggers independently, plus cancellation
+  on acceptance.
+
+The database-backed tests create and migrate a separate `flare_test` database
+automatically. Your `flare` database is never touched by the test suite.
