@@ -95,3 +95,31 @@ class SOSCreateResponse(BaseModel):
     # this and len(candidates) is the no_socket population -- selected, but
     # not reachable at the moment it mattered.
     alerted_count: int
+
+
+class AcceptResponse(BaseModel):
+    """The two sides of the accept-lock (ADR-011).
+
+    `accepted` false is not an error: it is the correct, expected answer for
+    every responder but the first, and the volunteer client renders it as
+    "already handled" rather than as a failure.
+    """
+
+    accepted: bool
+    sos_id: int
+    status: SOSStatus
+    detail: str
+
+
+class SOSStatusResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    status: SOSStatus
+    current_radius_m: int
+    wave_count: int
+    created_at: datetime
+    first_dispatch_at: datetime | None
+    matched_at: datetime | None
+    resolved_at: datetime | None
+    accepted_by: int | None
