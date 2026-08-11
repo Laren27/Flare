@@ -5,12 +5,27 @@ finds nearby verified responders with relevant skills, alerts them over
 WebSockets, and logs every dispatch decision so the network's failures can be
 measured rather than guessed at.
 
-**Status: week 5 of 8.** The dispatch loop is correct end to end and now has a
-face: citizen, volunteer and admin views served from the same origin as the API.
-An SOS reaches nearby responders over WebSockets, exactly one can claim it, and
-an incident nobody takes escalates 1km → 2km → 3km before terminating in an
-explicit `no_responder_found`. Analytics queries and the AI summary land in week
-6; see the roadmap in [Chapter 24 of the blueprint](docs/FLARE_Engineering_Blueprint_v2.md).
+**Status: week 6 of 8.** Feature-complete against Chapter 24 bar certificate
+upload. An SOS reaches nearby responders over WebSockets, exactly one can claim
+it, an incident nobody takes escalates 1km → 2km → 3km before terminating in an
+explicit `no_responder_found`, a single bounded LLM call enriches it off the
+critical path, and the admin dashboard reports all seven Chapter 18A metrics
+from named SQL files. See the roadmap in
+[Chapter 24 of the blueprint](docs/FLARE_Engineering_Blueprint_v2.md).
+
+## Analytics (Ch. 18A)
+
+Every figure on the dashboard is produced by a named query in
+`analytics/queries/`, and the filename is printed under each panel — so any
+number on screen can be checked against the SQL that made it.
+
+```bash
+cd backend && python ../sim/seed.py --count 60 --spread-m 2600 --reset
+cd backend && python ../sim/scenarios/coverage.py --incidents 300 --clear
+```
+
+That builds a reproducible corpus with two deliberate coverage holes, so the gap
+metric has something real to find.
 
 ## The app
 
@@ -23,7 +38,7 @@ With the server running, open **http://127.0.0.1:8000/app/**.
 | Citizen | `/app/citizen/` | **live** — SOS, escalation, terminal states |
 | Volunteer | `/app/volunteer/` | **live** — WebSocket alerts, accept-lock |
 | Volunteer alert | `/app/volunteer/alert.html` | live, with preview states |
-| Admin | `/app/admin/` | mock — Ch. 18A layout, week 6 queries |
+| Admin | `/app/admin/` | **live** — all seven metrics from `analytics/queries/` |
 
 Hard-to-summon states can be previewed without staging an incident:
 `/app/citizen/?state=expanding`, `?state=none`, and
@@ -99,6 +114,9 @@ later on the first query.
 | `POST` | `/sos/{id}/accept` | conditional UPDATE; exactly one responder wins (ADR-011) |
 | `POST` | `/sos/{id}/decline` | records one responder's answer, not the incident's |
 | `POST` | `/sos/{id}/resolve` | closes a matched incident and writes Incident History |
+| `GET` | `/admin/analytics` | all seven Ch. 18A metrics, each labelled with its query file |
+| `GET` | `/admin/incidents` | recent incidents for the admin table |
+| `GET` | `/admin/queries` | the traceability index of query files |
 | `WS` | `/ws/{user_id}` | real-time channel; first frame must be `{"type":"auth","token":…}` (ADR-022) |
 
 ## Simulation harness (ADR-016)
