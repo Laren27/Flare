@@ -13,6 +13,7 @@ to be written somewhere readable once.
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import SecretStr
 
@@ -47,6 +48,31 @@ class Settings(BaseSettings):
 
     # How long a wave may sit un-accepted before condition B fires (ADR-012).
     accept_timeout_seconds: int = 30
+
+    # AI summary -- ADR-005, ADR-013, ADR-024. Every field is optional: with no
+    # key the service reports `skipped` and dispatch is unaffected, because the
+    # call is never on the critical path.
+    ai_provider: Literal["gemini", "groq"] = "gemini"
+    ai_timeout_seconds: float = 3.0
+
+    gemini_api_key: SecretStr | None = None
+    gemini_model: str = "gemini-3.5-flash-lite"
+
+    groq_api_key: SecretStr | None = None
+    groq_model: str = "llama-3.3-70b-versatile"
+
+    @property
+    def ai_api_key(self) -> SecretStr | None:
+        key = self.gemini_api_key if self.ai_provider == "gemini" else self.groq_api_key
+        # A placeholder left in .env is not a key. Treating it as one would turn
+        # a misconfiguration into a confusing 401 instead of an honest `skipped`.
+        if key is None or key.get_secret_value().strip() in {"", "CHANGE_ME"}:
+            return None
+        return key
+
+    @property
+    def ai_model(self) -> str:
+        return self.gemini_model if self.ai_provider == "gemini" else self.groq_model
 
     # The role views of Ch. 11, served by this app rather than a second host.
     # Same origin means no CORS layer to configure and no chance of the two
