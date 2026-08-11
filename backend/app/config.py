@@ -31,9 +31,13 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expiry_minutes: int = 60
 
-    # Wave 1 dispatch radius. The escalation ladder of ADR-012 walks outward
-    # from here (1km -> 2km -> 3km); the rungs above this one arrive in week 4.
+    # Wave 1 dispatch radius, and the ladder the escalation state machine walks
+    # outward along before giving up (ADR-012).
     base_radius_m: int = 1000
+    radius_ladder_m: tuple[int, ...] = (1000, 2000, 3000)
+
+    # How long a wave may sit un-accepted before condition B fires (ADR-012).
+    accept_timeout_seconds: int = 30
 
 
 @lru_cache
