@@ -73,6 +73,9 @@ export const api = {
   acceptSos: (id) => request("POST", `/sos/${id}/accept`),
   declineSos: (id) => request("POST", `/sos/${id}/decline`),
   resolveSos: (id) => request("POST", `/sos/${id}/resolve`),
+
+  analytics: (windowDays = 30) => request("GET", `/admin/analytics?window_days=${windowDays}`),
+  adminIncidents: () => request("GET", "/admin/incidents"),
 };
 
 /** Browser geolocation as a promise, with an honest failure. */
