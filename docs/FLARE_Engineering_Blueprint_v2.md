@@ -614,6 +614,21 @@ Explicitly named as *not built*, to demonstrate awareness without overclaiming:
 - AI-based medical triage beyond the single priority-summary call
 - Ambulance dispatch integration / hospital system integration
 - Responder reputation/trust scoring based on incident history
+- **Rate limiting on `/auth/login`.** Deliberately not built, not merely absent. A
+  meaningful limiter needs state shared across workers, which means Redis, which
+  is already Future Scope for the same reason (Ch. 16). An in-process counter was
+  considered and rejected: it would look like protection while silently failing
+  the moment the app runs more than one worker — the identical objection ADR-011
+  makes to an in-process lock. The login endpoint returns one message for unknown
+  phone and wrong password alike and hashes a dummy password when the phone is
+  unknown, so it does not leak which numbers are registered; brute-force
+  resistance is what is missing, and it is missing on purpose.
+- **Vendoring Leaflet and webfonts.** They load from CDN. Accepted for the demo
+  venue, which has reliable network; the Content-Security-Policy allowlists
+  exactly `unpkg.com`, Google Fonts and OpenStreetMap tiles rather than opening
+  up, so vendoring later tightens the policy by subtraction. Map tiles need
+  network regardless, and Leaflet degrades to a styled placeholder if it cannot
+  load (Ch. 25).
 - Offline/low-connectivity SMS fallback for SOS triggering
 - Voice-based SOS activation
 - Full routing-based ETA (vs. current straight-line estimate)
@@ -689,6 +704,12 @@ Chapter 4 (ADR) in the same format as existing entries.
 - v2.0 — Build model corrected from four-person team to solo + AI collaborator; 8-week timeline fixed. Added ADR-011 (accept-lock enforced by atomic conditional UPDATE, replacing unspecified mechanism), ADR-012 (radius expansion triggered by both empty-candidate-set and acceptance-timeout, via an escalation state machine), ADR-013 (AI summary removed from dispatch critical path, made concurrent with timeout and fallback), ADR-014 (structured dispatch event log), ADR-015 (analytics promoted to co-headline deliverable with seven precisely defined metrics, superseding ADR-009 in scope), ADR-016 (responder simulation harness as core scope). Added Chapter 18A (analytics specification). Rewrote Chapter 13 dispatch sequence, Chapter 12 schema (+`DispatchEvents`, funnel timestamps), Chapter 19 folder structure (+`sim/`, `tests/`, `analytics/`, `CLAUDE.md`), Chapter 21 testing (automated tests moved to required), Chapter 24 roadmap (filled: 8-week plan), Chapter 27 demo strategy (four-act solo run).
 - v2.1 — Week 1 foundation decisions recorded: ADR-017 (Alembic for schema migrations), ADR-018 (async SQLAlchemy sessions over psycopg 3), ADR-019 (PyJWT + bcrypt, JSON login body, admin accounts created out-of-band rather than by signup). Chapter 12 annotated to resolve four ambiguities surfaced while implementing it: `phone` is the unique login identifier, `Volunteers.skills` is single-valued, `ai_priority` values are `{low, medium, high}`, `IncidentHistory.sos_id` is unique. Added `Users.created_at`. Recorded that per-wave radius and candidate counts are derived from `DispatchEvents`, not stored separately.
 - v2.2 — ADR-020 (event loop selection on Windows: `backend/run.py` entry point plus a startup assertion, constraining ADR-018's async driver choice on the development platform).
+- v2.8 — Login rate limiting and CDN asset vendoring recorded explicitly in Future
+  Scope (Ch. 26) as deliberate omissions with stated reasoning, rather than being
+  silently absent. Content-Security-Policy added in week 7 broke sign-in by
+  blocking the inline scripts on `login.html` and `alert.html`; fixed by
+  extracting them to modules rather than by weakening the policy with
+  `'unsafe-inline'`.
 - v2.7 — Certificate upload and admin approval moved to Future Scope (Ch. 26): the
   flow needs a schema change that was not taken. Security pass of Ch. 22 completed
   in week 7 — interactive API docs are closed in production and security headers
