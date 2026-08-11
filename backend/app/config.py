@@ -49,6 +49,25 @@ class Settings(BaseSettings):
     # How long a wave may sit un-accepted before condition B fires (ADR-012).
     accept_timeout_seconds: int = 30
 
+    # Deployment posture. Defaults to development so a forgotten variable makes
+    # local work easy rather than making production insecure -- the failure mode
+    # of the opposite default is silent and expensive.
+    environment: Literal["development", "production"] = "development"
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment == "production"
+
+    @property
+    def docs_url(self) -> str | None:
+        """Interactive docs are off in production (Ch. 22).
+
+        /docs and /openapi.json enumerate every endpoint, parameter and schema
+        in the system. That is exactly what you want while building and exactly
+        what you do not want to hand an unauthenticated visitor.
+        """
+        return None if self.is_production else "/docs"
+
     # AI summary -- ADR-005, ADR-013, ADR-024. Every field is optional: with no
     # key the service reports `skipped` and dispatch is unaffected, because the
     # call is never on the critical path.
