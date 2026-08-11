@@ -72,6 +72,35 @@ def is_skill_match(skill: SkillClass) -> bool:
     return skill in TOP_TIER_SKILLS
 
 
+# Which skills actually help, per AI category (ADR-013: wave 2 and beyond).
+# Anything unlisted falls back to SKILL_PRIORITY, so an unrecognised category
+# degrades to wave-1 behaviour rather than to no ranking at all.
+CATEGORY_SKILL_PRIORITY: dict[str, tuple[SkillClass, ...]] = {
+    "cardiac_arrest": (SkillClass.CPR, SkillClass.FIRST_AID),
+    "unconscious": (SkillClass.CPR, SkillClass.FIRST_AID),
+    "choking": (SkillClass.CPR, SkillClass.FIRST_AID),
+    "breathing_difficulty": (SkillClass.CPR, SkillClass.FIRST_AID),
+    # Bleeding is the one case where a blood donor outranks a CPR responder:
+    # the intervention that helps is not chest compressions.
+    "severe_bleeding": (SkillClass.FIRST_AID, SkillClass.BLOOD_DONOR, SkillClass.CPR),
+    "trauma": (SkillClass.FIRST_AID, SkillClass.CPR),
+    "burn": (SkillClass.FIRST_AID,),
+    "seizure": (SkillClass.FIRST_AID, SkillClass.CPR),
+    "allergic_reaction": (SkillClass.FIRST_AID,),
+}
+
+
+def category_priority(category: str | None, skill: SkillClass) -> int:
+    """Rank a skill against a known incident category, if one exists yet."""
+    preferred = CATEGORY_SKILL_PRIORITY.get(category or "")
+    if not preferred:
+        return SKILL_PRIORITY[skill]
+    if skill in preferred:
+        return preferred.index(skill)
+    # Relevant skills first, everything else after, still ordered sensibly.
+    return len(preferred) + SKILL_PRIORITY[skill]
+
+
 def rank_key(skill: SkillClass, distance_m: float) -> tuple[int, float]:
     """Sort key for wave 1: skill tier first, then proximity (ADR-021).
 
@@ -81,3 +110,11 @@ def rank_key(skill: SkillClass, distance_m: float) -> tuple[int, float]:
     settles the question (ADR-007 read through ADR-014).
     """
     return (SKILL_PRIORITY[skill], distance_m)
+
+
+def rank_key_for_category(
+    category: str | None, skill: SkillClass, distance_m: float
+) -> tuple[int, float]:
+    """Wave-2 sort key: the same shape as `rank_key`, ranked against what the
+    AI call actually said the emergency is (ADR-013)."""
+    return (category_priority(category, skill), distance_m)
