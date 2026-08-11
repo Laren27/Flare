@@ -10,13 +10,24 @@ successful alert -- the split ADR-021 set up before there was any transport to
 fail. The escalation state machine of ADR-012 is week 4.
 """
 
+import asyncio
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import SOS, DispatchOutcome, Location, RejectionReason, SkillClass, Volunteer
+from app.config import get_settings
+from app.database import get_session_factory
+from app.models import (
+    SOS,
+    DispatchOutcome,
+    Location,
+    Notification,
+    RejectionReason,
+    SkillClass,
+    Volunteer,
+)
 from app.services import events, haversine, notifications
 from app.services.websocket_manager import ConnectionRegistry
 from app.services.websocket_manager import registry as default_registry
@@ -118,17 +129,33 @@ def evaluate_volunteer(
     )
 
 
-async def dispatch_wave_one(
+async def dispatch_wave(
     session: AsyncSession,
     sos: SOS,
     registry: ConnectionRegistry | None = None,
 ) -> DispatchResult:
-    """Evaluate every volunteer, alert the survivors, log every decision.
+    """Evaluate every volunteer, alert the newly eligible, log every decision.
+
+    Runs for every wave, not just the first. On an expanded radius (ADR-012)
+    responders already holding an open alert are recorded `already_alerted`
+    rather than alerted twice -- their alert is still live, and re-sending it
+    would double-count them in the ADR-015 funnel.
 
     The registry is injectable so tests and the simulation harness can drive
     delivery without a real server; production passes the process-wide one.
     """
     registry = registry if registry is not None else default_registry
+    wave_number = sos.wave_count + 1
+
+    # Everyone already holding an open alert for this incident, from any
+    # previous wave.
+    already_alerted = set(
+        (
+            await session.execute(
+                select(Notification.volunteer_id).where(Notification.sos_id == sos.id)
+            )
+        ).scalars()
+    )
 
     # LEFT JOIN, not JOIN: an inner join would drop volunteers who have never
     # reported a position, and dropping a candidate without recording why is
@@ -163,6 +190,23 @@ async def dispatch_wave_one(
         for user_id, skill, verified, available, lat, lng in rows
     ]
 
+    # An otherwise-eligible responder who already holds an open alert is not a
+    # new recipient. Applied after evaluation so the reason is recorded rather
+    # than the person quietly skipped (invariant 4).
+    evaluations = [
+        events.Evaluation(
+            volunteer_id=evaluation.volunteer_id,
+            skill=evaluation.skill,
+            skill_match=evaluation.skill_match,
+            distance_m=evaluation.distance_m,
+            outcome=DispatchOutcome.REJECTED,
+            rejection_reason=RejectionReason.ALREADY_ALERTED,
+        )
+        if evaluation.is_selected and evaluation.volunteer_id in already_alerted
+        else evaluation
+        for evaluation in evaluations
+    ]
+
     candidates = [
         Candidate(
             volunteer_id=evaluation.volunteer_id,
@@ -181,7 +225,7 @@ async def dispatch_wave_one(
     deliveries = await notifications.deliver_alerts(
         session,
         sos=sos,
-        wave_number=WAVE_ONE,
+        wave_number=wave_number,
         recipients=[(c.volunteer_id, c.distance_m) for c in candidates],
         registry=registry,
     )
@@ -208,15 +252,16 @@ async def dispatch_wave_one(
     await events.record_evaluations(
         session,
         sos_id=sos.id,
-        wave_number=WAVE_ONE,
+        wave_number=wave_number,
         radius_m=radius_m,
         evaluations=final_evaluations,
     )
 
-    sos.wave_count = WAVE_ONE
-    # Isolates system latency from human latency in ADR-015. Set once wave 1 has
-    # been decided, which is the moment the engine's own work is done.
-    sos.first_dispatch_at = datetime.now(UTC)
+    sos.wave_count = wave_number
+    if wave_number == WAVE_ONE:
+        # Isolates system latency from human latency in ADR-015. Set once wave 1
+        # has been decided, which is the moment the engine's own work is done.
+        sos.first_dispatch_at = datetime.now(UTC)
 
     await session.commit()
 
@@ -226,3 +271,51 @@ async def dispatch_wave_one(
         evaluated_count=len(evaluations),
         alerted_count=len(candidates) - len(undeliverable),
     )
+
+
+async def start_incident(
+    session: AsyncSession,
+    *,
+    victim_id: int,
+    lat: float,
+    lng: float,
+    description: str | None,
+    registry: ConnectionRegistry | None = None,
+) -> DispatchResult:
+    """Create an incident, run wave 1, and arm its escalation task (Ch. 13 1-7).
+
+    The escalation task is registered here rather than in the router because
+    arming it is part of dispatching, not part of speaking HTTP -- and because
+    every path that creates an incident must arm it, including the simulation
+    harness.
+    """
+    # Local import: escalation imports this module to run subsequent waves.
+    from app.services import escalation
+
+    settings = get_settings()
+    registry = registry if registry is not None else default_registry
+
+    sos = await create_sos(
+        session,
+        victim_id=victim_id,
+        lat=lat,
+        lng=lng,
+        description=description,
+        radius_m=settings.base_radius_m,
+    )
+    result = await dispatch_wave(session, sos, registry=registry)
+
+    task = asyncio.create_task(
+        escalation.run_escalation(
+            sos.id,
+            session_factory=get_session_factory(),
+            registry=registry,
+            ladder=settings.radius_ladder_m,
+            accept_timeout_seconds=settings.accept_timeout_seconds,
+            # Condition A: nobody was alerted, so there is nothing to wait for.
+            empty_first_wave=result.alerted_count == 0,
+        )
+    )
+    escalation.tasks.register(sos.id, task)
+
+    return result
