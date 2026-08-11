@@ -29,3 +29,8 @@ pytest==9.1.1
 # already vendors the server half; the simulation harness needs the client half,
 # and a synthetic responder is by definition a WebSocket client.
 websockets==17.0.1
+
+# Async test support. test_accept_lock.py (ADR-010/011) fires N concurrent
+# accepts at one incident and test_escalation.py drives a background state
+# machine -- neither is expressible in a synchronous test.
+pytest-asyncio==1.3.0
