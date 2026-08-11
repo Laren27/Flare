@@ -24,3 +24,8 @@ bcrypt==5.0.0
 # claim is a hope. pytest-asyncio arrives in week 4 with test_accept_lock.py --
 # week 2's Haversine tests are pure functions and need neither it nor a database.
 pytest==9.1.1
+
+# WebSocket client, for the synthetic responders of ADR-016. uvicorn[standard]
+# already vendors the server half; the simulation harness needs the client half,
+# and a synthetic responder is by definition a WebSocket client.
+websockets==17.0.1
