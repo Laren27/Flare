@@ -19,6 +19,7 @@
  */
 
 import { api, auth, initials, requireAuth } from "../shared/api.js";
+import { initNav } from "../shared/nav.js";
 import { mockAdmin } from "../shared/mock.js";
 
 const CATEGORICAL = ["#EF4444", "#F59E0B", "#3B82F6", "#22C55E"];
@@ -430,10 +431,13 @@ function renderIncidents(incidents) {
 }
 
 function renderPending() {
-  // Certificate upload and approval are not built (ADR-006 needs a schema
-  // change). Labelled as sample rather than quietly shown as real.
+  // Certificate upload and approval are Future Scope: the flow needs a
+  // certificate_path column that does not exist, so there is nothing to
+  // approve. The buttons are rendered DISABLED rather than omitted or left
+  // looking live -- a control that does nothing when clicked reads as broken,
+  // and a control that isn't there hides the shape of the intended feature.
   el("pending-table").innerHTML = `
-    <thead><tr><th>Name</th><th>Skill</th><th>Certificate</th><th>Waiting</th></tr></thead>
+    <thead><tr><th>Name</th><th>Skill</th><th>Certificate</th><th>Waiting</th><th></th></tr></thead>
     <tbody>${mockAdmin.pendingVolunteers
       .map(
         (v) => `<tr>
@@ -441,6 +445,12 @@ function renderPending() {
           <td><span class="chip chip--info">${v.skill.replace("_", " ")}</span></td>
           <td class="muted">${v.certificate}</td>
           <td class="muted">${v.when}</td>
+          <td>
+            <button class="btn btn--success" style="padding:4px 10px" disabled
+                    title="Certificate upload and approval are Future Scope — see README">
+              Approve
+            </button>
+          </td>
         </tr>`
       )
       .join("")}</tbody>`;
@@ -454,6 +464,7 @@ async function boot() {
 
   el("user-name").textContent = user.name;
   el("user-initials").textContent = initials(user.name);
+  initNav();
 
   let payload;
   try {
