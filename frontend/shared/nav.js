@@ -24,12 +24,45 @@ export function trackSections(root = document) {
     .filter((entry) => entry.section);
   if (!sections.length) return;
 
+  // Every link that can carry the highlight, including the page's own "home"
+  // link. Clearing only the section links left the hardcoded aria-current on
+  // "Dashboard" in place, so scrolling to another section lit up two items at
+  // once -- which is what "the red background is not consistent" looks like.
+  const home = root.querySelector('.sidebar__link[href="#"]');
+  const highlightable = home ? [home, ...sections.map((s) => s.link)] : sections.map((s) => s.link);
+
   const setActive = (activeLink) => {
-    for (const { link } of sections) {
+    for (const link of highlightable) {
       if (link === activeLink) link.setAttribute("aria-current", "page");
       else link.removeAttribute("aria-current");
     }
   };
+
+  // At the very top of the page nothing has scrolled into view yet, so "home"
+  // is the honest answer rather than whichever section observes first. Guarded
+  // so it cannot fight a click the user just made.
+  let clickedRecently = 0;
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (Date.now() - clickedRecently < 800) return;
+      if (window.scrollY < 80 && home) setActive(home);
+    },
+    { passive: true }
+  );
+  for (const { link } of sections) {
+    link.addEventListener("click", () => {
+      clickedRecently = Date.now();
+    });
+  }
+
+  // Clicking a nav item highlights it immediately. This is the part that
+  // matters: "the highlight should follow what you chose" is a statement about
+  // the click, not about the scroll. Waiting for an observer to catch up leaves
+  // the red block sitting on the previous item while you look at a new section.
+  for (const { link } of sections) {
+    link.addEventListener("click", () => setActive(link));
+  }
 
   const observer = new IntersectionObserver(
     (entries) => {
@@ -49,14 +82,12 @@ export function trackSections(root = document) {
 
   for (const { section } of sections) observer.observe(section);
 
-  // Clicking the first link (the page's own "home") should return to the top,
-  // which a bare href="#" does inconsistently across browsers.
-  const home = root.querySelector('.sidebar__link[href="#"]');
+  // Clicking the page's own "home" returns to the top, which a bare href="#"
+  // does inconsistently across browsers.
   home?.addEventListener("click", (event) => {
     event.preventDefault();
     window.scrollTo({ top: 0, behavior: "smooth" });
-    setActive(null);
-    home.setAttribute("aria-current", "page");
+    setActive(home);
   });
 }
 
