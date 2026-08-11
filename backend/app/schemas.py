@@ -10,7 +10,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models import SkillClass, SOSStatus, UserRole
+from app.models import AIPriority, AIStatus, SkillClass, SOSStatus, UserRole
 
 # Signup is open to citizens and volunteers only. Admins approve volunteer
 # certificates (ADR-006), so an open admin route would make that trust
@@ -123,3 +123,10 @@ class SOSStatusResponse(BaseModel):
     matched_at: datetime | None
     resolved_at: datetime | None
     accepted_by: int | None
+
+    # Attached out of band by the AI summary service (ADR-013). Null until that
+    # call lands, which is the normal state for the first second of an incident
+    # and the permanent state when the call degrades.
+    ai_category: str | None
+    ai_priority: AIPriority | None
+    ai_status: AIStatus
