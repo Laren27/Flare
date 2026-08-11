@@ -76,6 +76,32 @@
 }
 .sidebar__icon { font-size: 1.05rem; line-height: 1; }
 
+/* A nav item whose feature is not built. Shown rather than hidden, so the
+   intended shape of the product is visible -- but visibly inert, because a link
+   that silently does nothing is the small end of claiming a feature you do not
+   have (Rule 007). */
+.sidebar__link--soon {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.sidebar__link--soon:hover {
+  background: transparent;
+  color: inherit;
+}
+.sidebar__soon {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  padding: 0 3px;
+  margin-left: auto;
+}
+@media (max-width: 899px) {
+  .sidebar__soon { display: none; }
+}
+
 @media (max-width: 899px) {
   .sidebar__link { flex-direction: column; gap: 2px; font-size: var(--text-xs); }
   .sidebar__label { font-size: 10px; }
@@ -83,7 +109,15 @@
 
 @media (min-width: 900px) {
   .sidebar {
-    position: static;
+    /* Sticky, not static. The admin dashboard is several screens tall, and a
+       static sidebar scrolls away the moment you jump to a section -- which
+       leaves you with no way back without scrolling to the top. align-self
+       stops the grid stretching it and defeating the stickiness. */
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    overflow-y: auto;
     flex-direction: column;
     justify-content: flex-start;
     padding: var(--s-4) var(--s-3);
