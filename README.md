@@ -5,11 +5,10 @@ finds nearby verified responders with relevant skills, alerts them over
 WebSockets, and logs every dispatch decision so the network's failures can be
 measured rather than guessed at.
 
-**Status: week 2 of 8.** Auth, schema, and the dispatch core — candidate
-selection works offline, as a function of the database, with every decision
-logged. The real-time layer, accept-lock, escalation, clients and analytics land
-in later weeks; see the roadmap in
-[Chapter 24 of the blueprint](docs/FLARE_Engineering_Blueprint_v2.md).
+**Status: week 3 of 8.** Auth, schema, dispatch core, and the real-time layer —
+an SOS now reaches nearby responders over live WebSocket connections. The
+accept-lock, escalation, clients and analytics land in later weeks; see the
+roadmap in [Chapter 24 of the blueprint](docs/FLARE_Engineering_Blueprint_v2.md).
 
 The blueprint is the authoritative spec. Architectural decisions, including the
 decisions *not* to build things, live in its Chapter 4 (ADR).
@@ -76,7 +75,18 @@ later on the first query.
 | `POST` | `/auth/signup` | citizen or volunteer; volunteers get an unverified, offline volunteer record |
 | `POST` | `/auth/login` | phone + password → bearer token |
 | `GET` | `/auth/me` | requires a valid, unexpired token |
-| `POST` | `/sos` | creates an incident and returns the wave-1 ranked candidate list |
+| `POST` | `/sos` | creates an incident, alerts nearby responders, returns the ranked candidate list |
+| `WS` | `/ws/{user_id}` | real-time channel; first frame must be `{"type":"auth","token":…}` (ADR-022) |
+
+## Simulation harness (ADR-016)
+
+```bash
+cd backend && python ../sim/seed.py --count 50 --spread-m 1200 --reset
+cd backend && python ../sim/responder_client.py --all --limit 20
+```
+
+`seed.py` is deterministic — the same `--seed` rebuilds the same network, which
+is what makes the demo dataset reproducible.
 
 ## Layout
 
