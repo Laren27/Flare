@@ -12,6 +12,7 @@
 import { api, auth, initials, requireAuth } from "../shared/api.js";
 import { RealtimeChannel } from "../shared/ws.js";
 import { createMap, formatDistance, incidentMarker, leafletAvailable } from "../shared/map.js";
+import { initNav } from "../shared/nav.js";
 import { mockBadges, mockRecentAlerts, mockVolunteerStats } from "../shared/mock.js";
 
 const el = (id) => document.getElementById(id);
@@ -128,6 +129,7 @@ function boot() {
 
   el("user-name").textContent = user.name;
   el("user-initials").textContent = initials(user.name);
+  initNav();
   renderStats();
   renderRecent();
   renderBadges();
