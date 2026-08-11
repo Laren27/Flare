@@ -20,16 +20,21 @@
   .legend { display: flex; flex-wrap: wrap; gap: var(--s-3); font-size: var(--text-xs); }
   .legend__item { display: inline-flex; align-items: center; gap: var(--s-2); }
   .legend__swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
-  .heat { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; }
+  .heat { display: grid; gap: 2px; }
   .heat__cell { aspect-ratio: 1; border-radius: 3px; }
   .toggle-table {
     background: none; border: none; color: var(--blue);
     font-size: var(--text-xs); font-weight: 600; cursor: pointer; padding: 0;
   }
+  .trace {
+    display: block; margin-top: var(--s-3); font-size: 11px; color: var(--muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
   .banner {
     background: var(--blue-tint); border: 1px solid #bfdbfe; color: #1d4ed8;
     border-radius: var(--radius); padding: var(--s-3) var(--s-4); font-size: var(--text-sm);
   }
+  .banner code { font-size: 0.9em; }
 </style>
 </head>
 <body>
@@ -40,7 +45,7 @@
     <a class="sidebar__link" href="#" aria-current="page"><span class="sidebar__icon">📊</span><span class="sidebar__label">Dashboard</span></a>
     <a class="sidebar__link" href="#incidents"><span class="sidebar__icon">🚨</span><span class="sidebar__label">Incidents</span></a>
     <a class="sidebar__link" href="#volunteers"><span class="sidebar__icon">👥</span><span class="sidebar__label">Volunteers</span></a>
-    <a class="sidebar__link" href="#analytics"><span class="sidebar__icon">📈</span><span class="sidebar__label">Analytics</span></a>
+    <a class="sidebar__link" href="#coverage-card"><span class="sidebar__icon">📈</span><span class="sidebar__label">Coverage</span></a>
     <div class="sidebar__spacer"></div>
     <a class="sidebar__link" href="#" id="logout"><span class="sidebar__icon">⏻</span><span class="sidebar__label">Logout</span></a>
   </nav>
@@ -59,11 +64,7 @@
 
   <main class="app__main stack stack--loose">
 
-    <div class="banner">
-      <strong>Sample data.</strong> The layout below is the contract for Chapter 18A's seven
-      metrics. The queries that populate it are week 6 — until then every figure here is
-      fixture data and must not be quoted as a measurement.
-    </div>
+    <div class="banner" id="banner">Loading analytics…</div>
 
     <div class="grid grid--stats" id="stats"></div>
 
@@ -72,7 +73,7 @@
         <div class="card__header">
           <div>
             <h3 class="card__title">Time to Acceptance</h3>
-            <p class="tiny muted">Distribution, not mean — the mean hides exactly the failures that matter</p>
+            <p class="tiny muted">Distribution, not mean — a mean hides exactly the failures that matter</p>
           </div>
           <button class="toggle-table" data-table="acceptance-table">Table</button>
         </div>
@@ -83,6 +84,7 @@
           <div><div class="stat__label">max</div><div class="strong numeric" id="pmax">—</div></div>
         </div>
         <div class="scroll-x" id="acceptance-table" hidden></div>
+        <code class="trace" id="acceptance-trace"></code>
       </div>
 
       <div class="card">
@@ -95,6 +97,7 @@
         </div>
         <div id="funnel-chart"></div>
         <div class="scroll-x" id="funnel-table" hidden></div>
+        <code class="trace" id="funnel-trace"></code>
       </div>
     </div>
 
@@ -102,8 +105,8 @@
       <div class="card">
         <div class="card__header">
           <div>
-            <h3 class="card__title">Incidents by Type</h3>
-            <p class="tiny muted">Category assigned by the single AI summary call</p>
+            <h3 class="card__title">Incidents by Category</h3>
+            <p class="tiny muted">Assigned by the single AI summary call</p>
           </div>
           <button class="toggle-table" data-table="types-table">Table</button>
         </div>
@@ -112,6 +115,7 @@
           <div class="legend" style="flex-direction:column;gap:var(--s-2)" id="types-legend"></div>
         </div>
         <div class="scroll-x" id="types-table" hidden></div>
+        <code class="trace" id="types-trace"></code>
       </div>
 
       <div class="card">
@@ -124,6 +128,7 @@
         </div>
         <div id="escalation-chart"></div>
         <div class="scroll-x" id="escalation-table" hidden></div>
+        <code class="trace" id="escalation-trace"></code>
       </div>
     </div>
 
@@ -131,27 +136,45 @@
       <div class="card">
         <div class="card__header">
           <div>
-            <h3 class="card__title">Top Areas by Demand</h3>
-            <p class="tiny muted">Incident count by locality</p>
+            <h3 class="card__title">Acceptance Rate by Skill</h3>
+            <p class="tiny muted">Does skill ranking improve outcomes, or just reorder a list?</p>
           </div>
+          <button class="toggle-table" data-table="skill-table">Table</button>
         </div>
-        <div id="areas-chart"></div>
+        <div id="skill-chart"></div>
+        <div class="scroll-x" id="skill-table" hidden></div>
+        <code class="trace" id="skill-trace"></code>
       </div>
 
       <div class="card">
         <div class="card__header">
           <div>
-            <h3 class="card__title">Coverage Gaps</h3>
-            <p class="tiny muted">Buckets with incidents but no eligible responder in range</p>
+            <h3 class="card__title">AI Degradation</h3>
+            <p class="tiny muted">Honest reporting of the weakest dependency</p>
           </div>
         </div>
-        <div class="heat" id="coverage"></div>
-        <div class="row row--between" style="margin-top:var(--s-3)">
-          <span class="tiny muted">Well covered</span>
-          <div id="coverage-scale" style="display:flex;gap:2px"></div>
-          <span class="tiny muted">Structurally blind</span>
+        <div class="stat__value" id="ai-headline">—</div>
+        <p class="tiny muted" style="margin-bottom:var(--s-3)">of incidents did not get an AI summary</p>
+        <div class="list" id="ai-breakdown"></div>
+        <code class="trace" id="ai-trace"></code>
+      </div>
+    </div>
+
+    <div class="card" id="coverage-card">
+      <div class="card__header">
+        <div>
+          <h3 class="card__title">Coverage Gaps</h3>
+          <p class="tiny muted">Buckets with incidents but no eligible responder within the base radius</p>
         </div>
       </div>
+      <div class="scroll-x"><div class="heat" id="coverage"></div></div>
+      <div class="row row--between" style="margin-top:var(--s-3)">
+        <span class="tiny muted">Well covered</span>
+        <div id="coverage-scale" style="display:flex;gap:2px"></div>
+        <span class="tiny muted">Structurally blind</span>
+      </div>
+      <div class="list" style="margin-top:var(--s-4)" id="coverage-worst"></div>
+      <code class="trace" id="coverage-trace"></code>
     </div>
 
     <div class="grid grid--halves">
@@ -159,13 +182,15 @@
         <div class="card__header"><h3 class="card__title">Pending Verification</h3></div>
         <div class="scroll-x"><table class="table" id="pending-table"></table></div>
         <p class="tiny muted" style="margin-top:var(--s-3)">
-          Manual approval by design (ADR-006). No automated document verification is claimed.
+          <strong>Sample data.</strong> Certificate upload and approval are not built —
+          they need a schema change (ADR-006). Manual approval is the design, not an omission.
         </p>
       </div>
 
       <div class="card" id="incidents">
-        <div class="card__header"><h3 class="card__title">Active Incidents</h3></div>
+        <div class="card__header"><h3 class="card__title">Recent Incidents</h3></div>
         <div class="scroll-x"><table class="table" id="incidents-table"></table></div>
+        <code class="trace">GET /admin/incidents</code>
       </div>
     </div>
 
