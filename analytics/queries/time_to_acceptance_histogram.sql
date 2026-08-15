@@ -11,6 +11,10 @@ WITH accepted AS (
     SELECT extract(epoch FROM (matched_at - created_at)) AS seconds
     FROM sos
     WHERE matched_at IS NOT NULL
+      -- Same exclusion as time_to_acceptance.sql (ADR-025). The two must agree:
+      -- a histogram drawn from a different population than the p50/p90 printed
+      -- beneath it is a chart that contradicts its own caption.
+      AND status <> 'cancelled'
       AND created_at >= now() - make_interval(days => :window_days)
 ),
 bucketed AS (
