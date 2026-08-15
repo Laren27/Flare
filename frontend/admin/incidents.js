@@ -7,6 +7,7 @@
  */
 
 import { api } from "../shared/api.js";
+import { renderEmpty, renderError } from "../shared/states.js";
 import { bootAdmin, el } from "./shared.js";
 
 const STATUS_PILL = {
@@ -20,8 +21,11 @@ function renderIncidents(incidents) {
   el("incident-count").textContent = `${incidents.length} shown`;
 
   if (!incidents.length) {
-    el("incidents-table").innerHTML =
-      '<tbody><tr><td class="muted">No incidents recorded yet. Trigger an SOS, or seed a corpus with sim/scenarios/coverage.py.</td></tr></tbody>';
+    renderEmpty(
+      el("incidents-table"),
+      "No incidents recorded yet.",
+      "Trigger an SOS, or seed a corpus with sim/scenarios/coverage.py."
+    );
     return;
   }
 
@@ -49,8 +53,14 @@ async function boot() {
     renderIncidents(await api.adminIncidents());
   } catch (error) {
     el("incident-count").textContent = "unavailable";
-    el("incidents-table").innerHTML =
-      `<tbody><tr><td class="muted">Could not load incidents: ${error.detail || error.message}</td></tr></tbody>`;
+    // Distinct from the empty state on purpose: a failed request and an empty
+    // table are different facts, and reading one as the other sends you looking
+    // in the wrong place.
+    renderError(
+      el("incidents-table"),
+      "Could not load incidents.",
+      error.detail || error.message
+    );
   }
 }
 
