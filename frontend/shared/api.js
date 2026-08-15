@@ -77,6 +77,15 @@ export const api = {
   cancelSos: (id) => request("POST", `/sos/${id}/cancel`),
   resolveSos: (id) => request("POST", `/sos/${id}/resolve`),
 
+  volunteerMe: () => request("GET", "/volunteers/me"),
+  // Going online carries a position (ADR-026); the server refuses without one.
+  setAvailability: (available, position = null) =>
+    request("PATCH", "/volunteers/availability", {
+      available,
+      lat: position?.lat ?? null,
+      lng: position?.lng ?? null,
+    }),
+
   analytics: (windowDays = 30) => request("GET", `/admin/analytics?window_days=${windowDays}`),
   adminIncidents: () => request("GET", "/admin/incidents"),
 };
