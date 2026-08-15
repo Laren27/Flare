@@ -90,6 +90,47 @@ async def decline(session: AsyncSession, *, sos_id: int, responder_id: int) -> b
     return updated
 
 
+async def cancel(session: AsyncSession, *, sos_id: int) -> SOS | None:
+    """Withdraw an incident (ADR-025). Returns None if it cannot be cancelled.
+
+    Reachable from `pending` -- triggered by accident, or the situation resolved
+    itself -- and from `matched`, where a responder is already on the way and
+    needs the incident to stop being live. Terminal states are refused: there is
+    nothing left to withdraw.
+
+    Writes no `IncidentHistory` row. That table records how the *system*
+    concluded an incident; a citizen changing their mind is not a conclusion the
+    system produced, and manufacturing a response time for one would put a
+    number into the ADR-015 distribution that describes nobody's rescue.
+
+    The caller cancels the escalation task. That is the router's job for the
+    same reason it is on acceptance -- the task registry is process state, not
+    database state.
+    """
+    sos = await session.get(SOS, sos_id)
+    if sos is None or sos.status not in {SOSStatus.PENDING, SOSStatus.MATCHED}:
+        return None
+
+    sos.status = SOSStatus.CANCELLED
+    sos.resolved_at = datetime.now(UTC)
+
+    # Any responder still holding an open alert is told it is over by the same
+    # mechanism that tells them somebody else won: their notification stops
+    # being `sent`. Without this the alert would sit open for an incident that
+    # no longer exists.
+    await session.execute(
+        update(Notification)
+        .where(
+            Notification.sos_id == sos_id,
+            Notification.status == NotificationStatus.SENT,
+        )
+        .values(status=NotificationStatus.DISMISSED, responded_at=func.now())
+    )
+
+    await session.commit()
+    return sos
+
+
 async def resolve(session: AsyncSession, *, sos_id: int) -> SOS | None:
     """Close a matched incident and write its Incident History row (Ch. 13 step 10)."""
     from app.models import EscalationTrigger, IncidentHistory
