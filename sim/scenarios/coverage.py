@@ -12,6 +12,13 @@ would have written them: same statuses, same DispatchEvents per candidate, same
 rejection reasons, same funnel timestamps. The queries cannot tell the
 difference, because there is none to tell.
 
+A share of incidents is withdrawn by the citizen (ADR-025), split between those
+cancelled while still searching and those cancelled after a responder had
+already accepted. The second kind is the reason the share exists: it is the case
+that makes the dispatch funnel and the time-to-acceptance distribution disagree
+on purpose, and without any in the corpus the dashboard cannot demonstrate that
+they disagree correctly.
+
 Deterministic: the same --seed rebuilds the same corpus, so a dashboard figure
 quoted on demo day is reproducible.
 
@@ -97,6 +104,15 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=4242)
     parser.add_argument("--days", type=int, default=21, help="spread incidents over N days")
     parser.add_argument("--spread-m", type=float, default=3200.0)
+    # Applied among incidents that had a reachable responder -- see the branch
+    # below for why the no_responder_found population is left alone. The
+    # achieved overall share is printed at the end so it can be checked.
+    parser.add_argument(
+        "--cancelled-share",
+        type=float,
+        default=0.045,
+        help="fraction of reachable incidents the citizen withdraws (ADR-025)",
+    )
     parser.add_argument("--clear", action="store_true", help="delete existing incidents first")
     args = parser.parse_args()
 
@@ -127,7 +143,8 @@ def main() -> None:
                 "VALUES ('Corpus Citizen', '+910000009999', 'citizen', 'x') RETURNING id"
             )).scalar()
 
-    created = matched = resolved = unmatched = 0
+    created = matched = resolved = unmatched = cancelled_count = 0
+    cancelled_after_match = 0
     now = datetime.now(UTC)
 
     with engine.begin() as c:
@@ -184,10 +201,42 @@ def main() -> None:
 
             # Outcome. Responders ignore alerts sometimes -- assuming otherwise
             # is the most unrealistic thing a dispatch model can do (ADR-012).
+            cancelled = False
+
             if not reachable:
                 status, unmatched = "no_responder_found", unmatched + 1
                 accepted_by = matched_at = None
                 trigger = trigger or "empty_set"
+            elif rng.random() < args.cancelled_share:
+                # The citizen withdrew (ADR-025). Applied only where a responder
+                # was actually reachable, which keeps the no_responder_found
+                # population -- the evidence Act 3 rests on -- untouched, and
+                # matches the likelier story: you cancel because help is coming
+                # or because you realise you do not need it, not because the
+                # search found nobody.
+                cancelled = True
+                cancelled_count += 1
+                status = "cancelled"
+
+                if rng.random() < 0.4:
+                    # Cancelled after a responder had already accepted. This is
+                    # the case that makes the funnel and the acceptance
+                    # distribution disagree on purpose: it counts as Accepted,
+                    # and is excluded from time-to-acceptance.
+                    cancelled_after_match += 1
+                    winner = min(reachable, key=lambda e: e[1])
+                    accepted_by = winner[0]
+                    matched_at = created_at + timedelta(
+                        seconds=min(rng.lognormvariate(4.6, 0.65), 700)
+                    )
+                    withdrawn_at = matched_at + timedelta(seconds=rng.uniform(60, 600))
+                else:
+                    # Cancelled while still searching.
+                    accepted_by = matched_at = None
+                    withdrawn_at = created_at + timedelta(seconds=rng.uniform(30, 300))
+
+                if wave > 1 and trigger is None:
+                    trigger = "timeout"
             elif rng.random() < 0.82:
                 winner = min(reachable, key=lambda e: e[1])
                 accepted_by = winner[0]
@@ -211,10 +260,15 @@ def main() -> None:
                 accepted_by = matched_at = None
 
             first_dispatch = created_at + timedelta(milliseconds=rng.uniform(40, 260))
-            resolved_at = (
-                matched_at + timedelta(seconds=rng.uniform(240, 1500))
-                if status == "resolved" and matched_at else None
-            )
+            if cancelled:
+                # cancel() stamps resolved_at on withdrawal too -- the column is
+                # "when this incident stopped being live", not "when help
+                # finished". The status is what distinguishes the two.
+                resolved_at = withdrawn_at
+            elif status == "resolved" and matched_at:
+                resolved_at = matched_at + timedelta(seconds=rng.uniform(240, 1500))
+            else:
+                resolved_at = None
 
             sos_id = c.execute(text("""
                 INSERT INTO sos (victim_id, lat, lng, description, status, current_radius_m,
@@ -265,6 +319,13 @@ def main() -> None:
                         n_status, responded = "accepted", matched_at
                     elif accepted_by is not None:
                         n_status, responded = "dismissed", matched_at
+                    elif cancelled:
+                        # cancel() dismisses every alert still open, so no
+                        # responder is left holding one for an incident that no
+                        # longer exists. A decline that landed first stands.
+                        n_status, responded = rng.choices(
+                            ["dismissed", "declined"], [0.75, 0.25]
+                        )[0], withdrawn_at
                     else:
                         n_status, responded = rng.choices(
                             ["sent", "declined"], [0.75, 0.25]
@@ -276,6 +337,10 @@ def main() -> None:
                     """), {"s": sos_id, "v": user_id, "w": wave, "st": n_status,
                            "sent": first_dispatch, "resp": responded})
 
+            # Cancelled incidents are absent from this table on purpose
+            # (ADR-025): Incident History records how the system concluded an
+            # incident, and a citizen changing their mind is not a conclusion
+            # the system produced.
             if status in ("resolved", "no_responder_found"):
                 c.execute(text("""
                     INSERT INTO incident_history (sos_id, response_time_seconds,
@@ -288,10 +353,13 @@ def main() -> None:
                     "tr": trigger or "none", "ra": resolved_at,
                 })
 
+    share = (cancelled_count / created * 100) if created else 0.0
     print(f"generated {created} incidents (seed={args.seed}, {args.days}d window)")
     print(f"  resolved            : {resolved}")
     print(f"  matched, unresolved : {matched}")
     print(f"  no_responder_found  : {unmatched}")
+    print(f"  cancelled           : {cancelled_count} ({share:.1f}% of all incidents)")
+    print(f"    of which accepted first : {cancelled_after_match}")
     print(f"  dead zones          : {len(DEAD_ZONES)} (coverage gaps to find)")
 
 
