@@ -26,13 +26,13 @@
   </nav>
 
   <header class="topbar">
-    <h1 id="page-title" style="font-size:var(--text-lg)">Emergency</h1>
+    <h1 class="topbar__title" id="page-title">Emergency</h1>
     <span class="pill pill--live" id="live-pill" hidden>LIVE</span>
     <div class="spacer"></div>
     <span class="pill" id="conn-pill" title="Real-time connection">Connecting…</span>
     <div class="responder">
       <div class="avatar avatar--sm" id="user-initials">?</div>
-      <div class="tiny" style="line-height:1.2">
+      <div class="identity__meta">
         <div class="strong" id="user-name">—</div>
         <div class="muted">Citizen</div>
       </div>
@@ -62,7 +62,7 @@
           <summary>Add a detail (optional)</summary>
           <textarea class="input" id="description" rows="3" maxlength="2000"
                     placeholder="What has happened? e.g. collapsed, not breathing"></textarea>
-          <p class="tiny muted" style="margin-top:var(--s-2)">
+          <p class="tiny muted mt-2">
             Used once, to categorise and prioritise the incident. Dispatch never waits
             for it — responders are alerted first, regardless.
           </p>
@@ -89,7 +89,7 @@
           <div class="card stack">
             <div>
               <div class="stat__label">Status</div>
-              <div class="row row--tight" style="margin-top:var(--s-1)">
+              <div class="row row--tight mt-1">
                 <span class="pill pill--success" id="active-status">✓ Responder Assigned</span>
               </div>
             </div>
@@ -106,7 +106,7 @@
                    responder position, so there is no marker to move and no ETA to
                    compute -- and a screen that showed one anyway would be claiming
                    a capability the backend does not have (Rule 007). -->
-              <p class="tiny muted" style="margin-top:var(--s-3)">
+              <p class="tiny muted mt-3">
                 Live location and ETA are not built. You will see that a responder has been
                 assigned, but not where they are.
               </p>
@@ -159,10 +159,10 @@
           <div><div class="stat__label">Elapsed</div><div class="strong numeric" id="expand-elapsed">0s</div></div>
         </div>
 
-        <p class="tiny muted" style="margin-top:var(--s-4)">
+        <p class="tiny muted mt-4">
           If you are able to, calling emergency services now is never the wrong choice.
         </p>
-        <a class="btn btn--danger" href="tel:112" style="margin-top:var(--s-3)">Call 112</a>
+        <a class="btn btn--danger mt-3" href="tel:112">Call 112</a>
       </div>
     </section>
 
@@ -178,10 +178,10 @@
             route to professional help.
           </p>
           <a class="btn btn--danger btn--lg btn--block" href="tel:112">Call 112 — Emergency Services</a>
-          <p class="tiny muted" style="margin-top:var(--s-4)">
+          <p class="tiny muted mt-4">
             Your request stays on record so the network can see where cover is missing.
           </p>
-          <button class="btn btn--ghost" id="restart-button" style="margin-top:var(--s-4)">Start a new request</button>
+          <button class="btn btn--ghost mt-4" id="restart-button">Start a new request</button>
         </div>
       </div>
     </section>

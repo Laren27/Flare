@@ -39,7 +39,7 @@
 
         <div class="card stack">
           <div class="row row--nowrap">
-            <div class="avatar" style="background:var(--red-tint);color:var(--flare-red)">❤️</div>
+            <div class="avatar avatar--alert">❤️</div>
             <!-- No area line. There is no reverse geocoding anywhere in the
                  system, so the neighbourhood name that used to sit here was a
                  fixed string shown even on live alerts. -->
@@ -74,7 +74,7 @@
       <section id="view-handled" class="stack" hidden>
         <div class="card">
           <div class="terminal">
-            <div class="terminal__icon" style="background:var(--green-tint)">✓</div>
+            <div class="terminal__icon terminal__icon--ok">✓</div>
             <h2 class="terminal__title">Already handled</h2>
             <p class="terminal__body">
               <span class="strong" id="winner-name">Another responder</span> accepted this
@@ -82,11 +82,11 @@
               is needed — help is on the way.
             </p>
             <span class="pill pill--success">Incident matched</span>
-            <p class="tiny muted" style="margin-top:var(--s-5)">
+            <p class="tiny muted mt-5">
               Only the first acceptance is assigned. The lock is enforced by the database,
               so exactly one responder is ever dispatched to an incident.
             </p>
-            <a class="btn btn--ghost" href="/app/volunteer/" style="margin-top:var(--s-4)">Back to dashboard</a>
+            <a class="btn btn--ghost mt-4" href="/app/volunteer/">Back to dashboard</a>
           </div>
         </div>
       </section>
@@ -95,7 +95,7 @@
       <section id="view-accepted" class="stack" hidden>
         <div class="card">
           <div class="terminal">
-            <div class="terminal__icon" style="background:var(--green-tint)">🚑</div>
+            <div class="terminal__icon terminal__icon--ok">🚑</div>
             <h2 class="terminal__title">You are assigned</h2>
             <p class="terminal__body">
               Head to the incident. The citizen can see that a responder has been assigned.

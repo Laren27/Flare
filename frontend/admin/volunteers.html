@@ -26,11 +26,11 @@
   </nav>
 
   <header class="topbar">
-    <h1 style="font-size:var(--text-lg)">Volunteers</h1>
+    <h1 class="topbar__title">Volunteers</h1>
     <div class="spacer"></div>
     <div class="responder">
       <div class="avatar avatar--sm" id="user-initials">A</div>
-      <div class="tiny" style="line-height:1.2">
+      <div class="identity__meta">
         <div class="strong" id="user-name">—</div>
         <div class="muted">Administrator</div>
       </div>
@@ -55,7 +55,7 @@
 
     <div class="card">
       <div class="card__header"><h3 class="card__title">What is actually enforced</h3></div>
-      <p class="small muted" style="max-width:70ch">
+      <p class="small muted measure">
         Verification is a real column on the volunteer record and the dispatch engine
         does honour it — an unverified volunteer is rejected during candidate evaluation
         with reason <code>unverified</code>, and that rejection is logged like any other

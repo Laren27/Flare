@@ -30,6 +30,11 @@
 .brand__mark { font-size: 1.25em; line-height: 1; }
 .brand--light { color: var(--white); }
 
+/* The page title in the topbar, and the signed-in identity beside it. Both
+   were inline styles repeated on every one of the six app pages. */
+.topbar__title { font-size: var(--text-lg); }
+.identity__meta { font-size: var(--text-xs); line-height: 1.2; }
+
 .sidebar {
   background: var(--navy);
   color: #cbd5e1;
@@ -70,9 +75,12 @@
   color: var(--white);
   text-decoration: none;
 }
+/* Bottom-bar orientation: the marker sits along the top edge, where a tab
+   indicator belongs. The desktop rule below flips it to the leading edge. */
 .sidebar__link[aria-current="page"] {
-  background: var(--flare-red);
+  background: var(--nav-active);
   color: var(--white);
+  box-shadow: inset 0 3px 0 var(--flare-red);
 }
 .sidebar__icon { font-size: 1.05rem; line-height: 1; }
 
@@ -122,6 +130,9 @@
     justify-content: flex-start;
     padding: var(--s-4) var(--s-3);
     gap: var(--s-1);
+  }
+  .sidebar__link[aria-current="page"] {
+    box-shadow: inset 3px 0 0 var(--flare-red);
   }
   .sidebar__brand {
     display: flex;
@@ -322,6 +333,7 @@
 }
 .avatar--sm { width: 32px; height: 32px; font-size: var(--text-xs); }
 .avatar--green { background: var(--green); }
+.avatar--alert { background: var(--red-tint); color: var(--flare-red); }
 
 /* ---- Progress stepper -------------------------------------------------- */
 
@@ -464,6 +476,8 @@
   background: var(--surface-alt);
   font-size: 1.75rem;
 }
+/* A terminal state that resolved well, rather than one that merely ended. */
+.terminal__icon--ok { background: var(--green-tint); }
 .terminal__title {
   font-family: var(--font-display);
   font-size: var(--text-xl);

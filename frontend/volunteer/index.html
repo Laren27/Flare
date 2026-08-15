@@ -39,7 +39,7 @@
   </nav>
 
   <header class="topbar">
-    <h1 style="font-size:var(--text-lg)">Welcome, <span id="user-name">—</span></h1>
+    <h1 class="topbar__title">Welcome, <span id="user-name">—</span></h1>
     <div class="spacer"></div>
     <span class="pill" id="conn-pill">Connecting…</span>
     <div class="avatar avatar--sm" id="user-initials">?</div>
@@ -56,7 +56,7 @@
       <div>
         <div class="stat__label">Availability</div>
         <div class="strong" id="availability-text">Offline</div>
-        <p class="tiny muted" style="margin-top:var(--s-1)" id="availability-note">
+        <p class="tiny muted mt-1" id="availability-note">
           Not built — this toggle does not yet reach the server.
         </p>
       </div>
@@ -74,7 +74,7 @@
           <a class="small" href="/app/volunteer/alert.html">View All →</a>
         </div>
         <div class="list" id="recent-alerts"></div>
-        <p class="tiny muted" style="margin-top:var(--s-3)" id="recent-note"></p>
+        <p class="tiny muted mt-3" id="recent-note"></p>
       </div>
 
       <div class="card">
@@ -83,7 +83,7 @@
           <div class="coverage__disc"><span class="coverage__dot"></span></div>
         </div>
         <p class="small muted center">You are visible to people within <span class="strong" id="coverage-radius">1 km</span></p>
-        <p class="tiny muted center" style="margin-top:var(--s-2)">
+        <p class="tiny muted center mt-2">
           Radius is set by the dispatch engine, not by you — it widens automatically
           when nobody nearby responds.
         </p>
@@ -93,7 +93,7 @@
     <div class="card">
       <div class="card__header"><h3 class="card__title">Your Badges</h3></div>
       <div class="badges" id="badges"></div>
-      <p class="tiny muted" style="margin-top:var(--s-3)">
+      <p class="tiny muted mt-3">
         Badges reflect admin-verified certificates. Verification is manual by design —
         no automated document checking is claimed.
       </p>
@@ -109,7 +109,7 @@
     <div class="alert-card__head"><span>🔔</span><span id="alert-title">Incoming Alert</span></div>
     <div class="alert-card__body stack">
       <div class="row row--nowrap">
-        <div class="avatar" style="background:var(--red-tint);color:var(--flare-red)">❤️</div>
+        <div class="avatar avatar--alert">❤️</div>
         <div>
           <div class="strong" id="alert-category">Emergency</div>
           <div class="tiny muted"><span id="alert-distance">—</span> away</div>

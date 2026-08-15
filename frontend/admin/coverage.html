@@ -26,11 +26,11 @@
   </nav>
 
   <header class="topbar">
-    <h1 style="font-size:var(--text-lg)">Coverage</h1>
+    <h1 class="topbar__title">Coverage</h1>
     <div class="spacer"></div>
     <div class="responder">
       <div class="avatar avatar--sm" id="user-initials">A</div>
-      <div class="tiny" style="line-height:1.2">
+      <div class="identity__meta">
         <div class="strong" id="user-name">—</div>
         <div class="muted">Administrator</div>
       </div>
@@ -49,18 +49,18 @@
         </div>
       </div>
       <div class="scroll-x"><div class="heat" id="coverage"></div></div>
-      <div class="row row--between" style="margin-top:var(--s-3)">
+      <div class="row row--between mt-3">
         <span class="tiny muted">Well covered</span>
         <div id="coverage-scale" style="display:flex;gap:2px"></div>
         <span class="tiny muted">Structurally blind</span>
       </div>
-      <div class="list" style="margin-top:var(--s-4)" id="coverage-worst"></div>
+      <div class="list mt-4" id="coverage-worst"></div>
       <code class="trace" id="coverage-trace"></code>
     </div>
 
     <div class="card">
       <div class="card__header"><h3 class="card__title">How to read this</h3></div>
-      <p class="small muted" style="max-width:70ch">
+      <p class="small muted measure">
         The operating area is bucketed into a fixed grid. A bucket darkens as more of its
         incidents had zero eligible responders inside the base radius at the moment the
         SOS was raised — computed from the dispatch event log, not from where responders
@@ -68,7 +68,7 @@
         <em>where should we recruit</em>, and it answers it from decisions the engine
         actually made (ADR-014, ADR-015).
       </p>
-      <p class="small muted" style="max-width:70ch;margin-top:var(--s-3)">
+      <p class="small muted measure mt-3">
         Grey cells contain no incidents at all. They are not coverage — they are absence
         of evidence, and are deliberately not shaded as if they were safe.
       </p>

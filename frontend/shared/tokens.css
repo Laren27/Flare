@@ -72,6 +72,13 @@
   --shadow-lg: 0 10px 30px rgb(15 23 42 / 10%);
   --shadow-red: 0 8px 24px rgb(239 68 68 / 32%);
 
+  /* The active navigation item. Deliberately NOT --flare-red as a fill: red is
+     reserved for emergency and destructive, and a solid red block sitting in
+     the sidebar of a calm, idle screen spends that meaning on "you are here".
+     The red survives as a 3px marker, which reads as a position indicator
+     rather than as an alarm. */
+  --nav-active: var(--navy-soft);
+
   --sidebar-w: 232px;
   --topbar-h: 64px;
 

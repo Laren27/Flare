@@ -152,6 +152,20 @@ textarea {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Vertical rhythm. These exist because `style="margin-top:var(--s-N)"` had been
+   written nineteen times across the pages -- the tokens were respected, but the
+   decision was restated at every call site instead of being named once. */
+.mt-1 { margin-top: var(--s-1); }
+.mt-2 { margin-top: var(--s-2); }
+.mt-3 { margin-top: var(--s-3); }
+.mt-4 { margin-top: var(--s-4); }
+.mt-5 { margin-top: var(--s-5); }
+
+/* Prose measure. Explanatory copy should not run the full width of a desktop
+   card; past roughly 70 characters a line stops being comfortable to read. */
+.measure        { max-width: 70ch; }
+.measure--narrow { max-width: 40ch; }
+
 .muted    { color: var(--muted); }
 .small    { font-size: var(--text-sm); }
 .tiny     { font-size: var(--text-xs); }

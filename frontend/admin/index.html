@@ -26,11 +26,11 @@
   </nav>
 
   <header class="topbar">
-    <h1 style="font-size:var(--text-lg)">Dashboard Overview</h1>
+    <h1 class="topbar__title">Dashboard Overview</h1>
     <div class="spacer"></div>
     <div class="responder">
       <div class="avatar avatar--sm" id="user-initials">A</div>
-      <div class="tiny" style="line-height:1.2">
+      <div class="identity__meta">
         <div class="strong" id="user-name">—</div>
         <div class="muted">Administrator</div>
       </div>
@@ -79,7 +79,7 @@
             <div><div class="stat__label">max</div><div class="strong numeric" id="fd-max">—</div></div>
             <div><div class="stat__label">incidents</div><div class="strong numeric" id="fd-count">—</div></div>
           </div>
-          <p class="small muted" style="margin-top:var(--s-4)">
+          <p class="small muted mt-4">
             Human latency at p90 is roughly <span class="strong numeric" id="fd-human">—</span> —
             the gap between time-to-acceptance and this figure. Derived from the two
             queries named here and on the panel beside it, not from a query of its own.
