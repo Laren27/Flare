@@ -72,6 +72,9 @@ export const api = {
   getSos: (id) => request("GET", `/sos/${id}`),
   acceptSos: (id) => request("POST", `/sos/${id}/accept`),
   declineSos: (id) => request("POST", `/sos/${id}/decline`),
+  // Cancel and resolve are different outcomes, not two names for one (ADR-025):
+  // resolve asserts that help arrived, cancel that the citizen withdrew.
+  cancelSos: (id) => request("POST", `/sos/${id}/cancel`),
   resolveSos: (id) => request("POST", `/sos/${id}/resolve`),
 
   analytics: (windowDays = 30) => request("GET", `/admin/analytics?window_days=${windowDays}`),
