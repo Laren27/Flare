@@ -59,6 +59,11 @@ class SOSStatus(enum.StrEnum):
     PENDING = "pending"
     MATCHED = "matched"
     RESOLVED = "resolved"
+    # Withdrawn by the citizen, from `pending` or `matched` (ADR-025). Distinct
+    # from `resolved` on purpose: folding "never mind" into "help arrived" would
+    # inflate the funnel's resolved count and pollute the time-to-acceptance
+    # distribution with incidents nobody was still travelling to.
+    CANCELLED = "cancelled"
     NO_RESPONDER_FOUND = "no_responder_found"
 
 
