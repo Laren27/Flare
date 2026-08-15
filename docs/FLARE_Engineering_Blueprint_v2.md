@@ -221,6 +221,14 @@ This is a running log. New entries go at the bottom. Format: Decision → Altern
 - Why: ADR-013 constrains this call to a 3-second hard timeout with an explicit fallback, which is roughly fifteen lines of `urllib` — an SDK would be a dependency bought to avoid them, and it would bury the two behaviours the project actually claims (the timeout and the degradation) inside someone else's retry policy. Keeping the request explicit means the fallback path is readable in one screen and testable without a network. The provider switch exists because the free Gemini tier is 500 calls a day and a semester of demos can exhaust it; a config flag moves to Groq in one line. Automatic failover was rejected deliberately: it doubles the number of ways the call can fail, on the one dependency the project already describes as its weakest, to save changing an environment variable. The header rather than `?key=` follows the same reasoning as ADR-022 — a credential in a URL is written to every log the request passes.
 - Note: `ai_status` distinguishes `ok`, `timeout`, `error` and `skipped`, so quota exhaustion, a network failure and a missing key are separable in the ADR-015 degradation metric rather than collapsing into one number.
 
+**ADR-025: Cancellation is a distinct terminal state, not a resolution**
+- Decision: `cancelled` becomes a fifth `SOS.status`, written only by `POST /sos/{id}/cancel`, reachable from `pending` or `matched`, and never by `POST /sos/{id}/resolve`. Cancelling cancels the escalation task exactly as acceptance does (ADR-012). No `IncidentHistory` row is written: that table records how the *system* concluded an incident, and a citizen withdrawing is not a conclusion the system produced.
+- Context: the citizen view shipped a "Cancel Request" button wired to `/resolve`, because `resolved` was the only terminal state a citizen could reach. A withdrawn request and a completed rescue were therefore recorded identically.
+- Alternatives considered: continuing to reuse `resolved`; a `cancelled_at` timestamp column alongside `resolved`, leaving the status set untouched; deleting the SOS row outright.
+- Why: reusing `resolved` corrupts the two figures ADR-015 leans on hardest — the funnel's resolved count and the time-to-acceptance distribution — by folding "never mind" into "help arrived", and it does so invisibly, which is the failure mode this project refuses everywhere else. A boolean column would avoid changing the CHECK constraint, but every status query in the system would then have to read `status = 'resolved' AND NOT cancelled`; that is an implicit invariant, and the first query that forgets it skews a metric silently. Deleting the row is the worst of the three: responders genuinely were alerted, and invariant 4 requires every evaluation to stay on the record.
+- Analytics treatment: cancelled incidents **stay in the dispatch funnel** and are reported as their own labelled count. They were created, candidates were evaluated, and alerts really went out — those stages are true statements about what the engine did, and removing them would make the top of the funnel disagree with the incidents table while flattering the system by hiding alert fatigue it actually caused. The `Accepted` stage moves from `status IN ('matched','resolved')` to `matched_at IS NOT NULL`, so an incident cancelled after acceptance still counts as accepted. Cancelled incidents *are* excluded from the time-to-acceptance distribution.
+- Note: the exclusion above is the one debatable half of this entry. An incident accepted in 90 seconds and cancelled afterwards has a genuine, measured acceptance time, and dropping it discards real evidence about network speed. The case is narrow — a cancellation before any match has no `matched_at` and falls out of that query regardless — and the exclusion was chosen deliberately so that every figure in the distribution describes an incident a responder was actually still travelling to.
+
 ---
 
 # PART II — PRODUCT DESIGN
@@ -364,7 +372,7 @@ Locations
 
 SOS
   id, victim_id, lat, lng, description,
-  status (pending | matched | resolved | no_responder_found),
+  status (pending | matched | resolved | cancelled | no_responder_found),
   current_radius_m, wave_count,
   ai_category, ai_priority (low | medium | high),
   ai_status (ok | timeout | error | skipped),
@@ -704,6 +712,11 @@ Chapter 4 (ADR) in the same format as existing entries.
 - v2.0 — Build model corrected from four-person team to solo + AI collaborator; 8-week timeline fixed. Added ADR-011 (accept-lock enforced by atomic conditional UPDATE, replacing unspecified mechanism), ADR-012 (radius expansion triggered by both empty-candidate-set and acceptance-timeout, via an escalation state machine), ADR-013 (AI summary removed from dispatch critical path, made concurrent with timeout and fallback), ADR-014 (structured dispatch event log), ADR-015 (analytics promoted to co-headline deliverable with seven precisely defined metrics, superseding ADR-009 in scope), ADR-016 (responder simulation harness as core scope). Added Chapter 18A (analytics specification). Rewrote Chapter 13 dispatch sequence, Chapter 12 schema (+`DispatchEvents`, funnel timestamps), Chapter 19 folder structure (+`sim/`, `tests/`, `analytics/`, `CLAUDE.md`), Chapter 21 testing (automated tests moved to required), Chapter 24 roadmap (filled: 8-week plan), Chapter 27 demo strategy (four-act solo run).
 - v2.1 — Week 1 foundation decisions recorded: ADR-017 (Alembic for schema migrations), ADR-018 (async SQLAlchemy sessions over psycopg 3), ADR-019 (PyJWT + bcrypt, JSON login body, admin accounts created out-of-band rather than by signup). Chapter 12 annotated to resolve four ambiguities surfaced while implementing it: `phone` is the unique login identifier, `Volunteers.skills` is single-valued, `ai_priority` values are `{low, medium, high}`, `IncidentHistory.sos_id` is unique. Added `Users.created_at`. Recorded that per-wave radius and candidate counts are derived from `DispatchEvents`, not stored separately.
 - v2.2 — ADR-020 (event loop selection on Windows: `backend/run.py` entry point plus a startup assertion, constraining ADR-018's async driver choice on the development platform).
+- v2.9 — ADR-025 (cancellation as a distinct terminal state). Chapter 12 `SOS.status`
+  gains `cancelled`; migration 0003 widens the CHECK constraint. Recorded during the
+  frontend redesign, when the citizen "Cancel Request" control was found to be wired
+  to `/resolve` — so a withdrawn request and a completed rescue were indistinguishable
+  in the funnel and in the response-time distribution.
 - v2.8 — Login rate limiting and CDN asset vendoring recorded explicitly in Future
   Scope (Ch. 26) as deliberate omissions with stated reasoning, rather than being
   silently absent. Content-Security-Policy added in week 7 broke sign-in by
