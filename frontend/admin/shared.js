@@ -21,15 +21,20 @@
  * direct-labelled and every chart has a table view.
  */
 
-import { api, auth, initials, requireAuth } from "../shared/api.js";
+import { api, auth, requireAuth } from "../shared/api.js";
+import { initials } from "../shared/format.js";
 import { initNav } from "../shared/nav.js";
+
+// Re-exported rather than redefined: the admin pages keep one import surface,
+// and the formatters themselves now live where the citizen and volunteer views
+// can reach them too.
+export { duration, latency, num, pct } from "../shared/format.js";
 
 export const CATEGORICAL = ["#EF4444", "#F59E0B", "#3B82F6", "#22C55E"];
 export const OTHER = "#64748B";
 export const SEQUENTIAL = ["#FEF2F2", "#FEE2E2", "#FCA5A5", "#F87171", "#EF4444", "#B91C1C", "#7F1D1D"];
 
 export const el = (id) => document.getElementById(id);
-export const num = (v) => (v === null || v === undefined ? 0 : Number(v));
 
 export function svg(width, height, extra = "") {
   return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" ${extra}>`;
@@ -41,30 +46,6 @@ export function table(headers, rows) {
     .join("")}</tr></thead><tbody>${rows
     .map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join("")}</tr>`)
     .join("")}</tbody></table>`;
-}
-
-export function duration(seconds) {
-  const s = Math.round(num(seconds));
-  if (s < 60) return `${s}s`;
-  return `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
-}
-
-/**
- * Sub-second-aware duration.
- *
- * Time-to-first-dispatch is measured in milliseconds -- the engine decides a
- * whole dispatch wave in tens of them. Rounding that to whole seconds prints
- * "0s", which reads as broken and throws away the single strongest number the
- * system produces. Anything at or above a second falls through to `duration`.
- */
-export function latency(seconds) {
-  const s = num(seconds);
-  if (s < 1) return `${Math.round(s * 1000)} ms`;
-  return duration(s);
-}
-
-export function pct(value) {
-  return `${Math.round(num(value) * 100)}%`;
 }
 
 /** Stamp the query file onto a card, per Ch. 18A traceability. */
