@@ -11,6 +11,7 @@
  * of this page (how the loop is performing).
  */
 
+import { renderEmpty } from "../shared/states.js";
 import {
   CATEGORICAL,
   OTHER,
@@ -73,7 +74,7 @@ function renderAcceptance(m) {
   trace("acceptance-trace", m.time_to_acceptance_histogram.query_file);
 
   if (!data.length) {
-    el("acceptance-chart").innerHTML = '<p class="small muted">No accepted incidents in window.</p>';
+    renderEmpty(el("acceptance-chart"), "No incident has been accepted in this window.");
     return;
   }
 
@@ -114,8 +115,7 @@ function renderFirstDispatch(m) {
 
   const dispatched = num(row.dispatched_count);
   if (!dispatched) {
-    el("dispatch-body").innerHTML =
-      '<p class="small muted">No incident has been dispatched in this window.</p>';
+    renderEmpty(el("dispatch-body"), "No incident has been dispatched in this window.");
     return;
   }
 
