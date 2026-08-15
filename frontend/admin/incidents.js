@@ -14,6 +14,10 @@ const STATUS_PILL = {
   matched: "pill--success",
   pending: "pill--warn",
   resolved: "pill--info",
+  // Neutral on purpose (ADR-025). A withdrawn request is not a failure of the
+  // dispatch engine, and colouring it as one would read as a fault where none
+  // occurred.
+  cancelled: "pill--muted",
   no_responder_found: "pill--live",
 };
 
