@@ -9,7 +9,8 @@
  * no-responder-found screen should not require waiting out three 30s rungs.
  */
 
-import { api, auth, currentPosition, initials, requireAuth } from "../shared/api.js";
+import { api, auth, currentPosition, requireAuth } from "../shared/api.js";
+import { initials } from "../shared/format.js";
 import { RealtimeChannel } from "../shared/ws.js";
 import {
   createMap,
