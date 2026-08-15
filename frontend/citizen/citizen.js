@@ -33,6 +33,7 @@ let user = null;
 let position = null;
 let incident = null;
 let pollTimer = null;
+let tickTimer = null;
 let startedAt = null;
 let map = null;
 let markers = { incident: null, circles: [] };
@@ -115,7 +116,14 @@ function renderIncident(sos) {
     return;
   }
 
-  if (sos.status === "resolved") {
+  if (sos.status === "cancelled" || sos.status === "resolved") {
+    // Acknowledge the ending rather than dropping silently back to the button.
+    const note = el("idle-note");
+    note.textContent =
+      sos.status === "cancelled"
+        ? "Your request was cancelled. Nobody is on the way."
+        : "Your request is closed.";
+    note.hidden = false;
     showState("idle");
     stopPolling();
     return;
@@ -130,9 +138,7 @@ function renderIncident(sos) {
   el("rings").querySelectorAll("span").forEach((ring, i) => {
     ring.classList.toggle("is-active", i === Math.max(0, index));
   });
-  if (startedAt) {
-    el("expand-elapsed").textContent = `${Math.round((Date.now() - startedAt) / 1000)}s`;
-  }
+  startTicking();
 }
 
 function startPolling(id) {
@@ -148,15 +154,66 @@ function startPolling(id) {
 
 function stopPolling() {
   if (pollTimer) clearInterval(pollTimer);
+  if (tickTimer) clearInterval(tickTimer);
   pollTimer = null;
+  tickTimer = null;
+}
+
+/* The elapsed counter ticks locally, once a second. Driving it from the poll
+ * made it jump in two-second steps, which reads as a stalled page at exactly
+ * the moment a citizen is watching for any sign the system is still working.
+ * The radius and wave beside it still come only from the server -- those are
+ * facts about the incident, and guessing at them would be inventing state. */
+function startTicking() {
+  if (tickTimer) return;
+  tickTimer = setInterval(() => {
+    if (!startedAt) return;
+    el("expand-elapsed").textContent = `${Math.round((Date.now() - startedAt) / 1000)}s`;
+  }, 1000);
 }
 
 /* ---- actions ----------------------------------------------------------- */
+
+/* Locating gates the SOS button. Without a fix there is nothing to dispatch on,
+ * so the honest thing is to refuse the press and say why -- not to accept it,
+ * fail server-side, and surface a raw error after the fact. */
+async function locate() {
+  const note = el("location-note");
+  const retry = el("location-retry");
+
+  note.textContent = "Locating you…";
+  retry.hidden = true;
+  el("sos-button").disabled = true;
+  el("sos-caption").textContent = "Getting your location…";
+
+  try {
+    position = await currentPosition();
+    note.textContent = `Location ready — ${position.lat.toFixed(4)}, ${position.lng.toFixed(4)}`;
+    el("sos-button").disabled = false;
+    el("sos-caption").textContent = "Tap to Send SOS";
+  } catch (error) {
+    position = null;
+    note.textContent = error.message;
+    retry.hidden = false;
+    el("sos-caption").textContent = "Location needed before you can send an SOS";
+  }
+}
+
+async function cancelIncident() {
+  if (!incident) return;
+  try {
+    renderIncident(await api.cancelSos(incident.id));
+  } catch (error) {
+    el("idle-error").textContent = error.detail || error.message;
+    el("idle-error").hidden = false;
+  }
+}
 
 async function triggerSos() {
   const button = el("sos-button");
   button.disabled = true;
   el("idle-error").hidden = true;
+  el("idle-note").hidden = true;
 
   try {
     if (!position) position = await currentPosition();
@@ -237,28 +294,20 @@ async function boot() {
   showState("idle");
 
   el("sos-button").addEventListener("click", triggerSos);
+  el("location-retry").addEventListener("click", locate);
   el("restart-button").addEventListener("click", () => location.reload());
-  el("cancel-button").addEventListener("click", async () => {
-    if (incident) await api.resolveSos(incident.id).catch(() => {});
-    location.reload();
-  });
+
+  // Both cancel controls call cancel, not resolve. Resolving a withdrawn
+  // request would record it as a completed rescue (ADR-025).
+  el("cancel-button").addEventListener("click", cancelIncident);
+  el("cancel-searching").addEventListener("click", cancelIncident);
   el("logout").addEventListener("click", (event) => {
     event.preventDefault();
     auth.clear();
     location.href = "/app/login.html";
   });
 
-  currentPosition()
-    .then((point) => {
-      position = point;
-      el("location-note").textContent =
-        `Location ready — ${point.lat.toFixed(4)}, ${point.lng.toFixed(4)}`;
-    })
-    .catch((error) => {
-      // Honest, not silent: without a location there is nothing to dispatch on.
-      position = null;
-      el("location-note").textContent = error.message;
-    });
+  locate();
 
   const channel = new RealtimeChannel(user.id);
   channel.addEventListener("ready", () => { el("conn-pill").textContent = "connected"; });
