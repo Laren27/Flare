@@ -1,0 +1,31 @@
+{
+  "autoMode": {
+    "environment": [
+      "$defaults",
+      "### Org-wide",
+      "**Organization**: None configured — solo developer, personal GitHub account `Laren27`",
+      "**Cloud provider(s)**: None configured",
+      "**Repository visibility**: not queryable here via gh; remote is `https://github.com/Laren27/Flare` on github.com with no visibility marker — assume private unless a visibility check shows otherwise",
+      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Secrets management**: None configured — config via environment variables in `backend/.env` (gitignored, with `backend/.env.example` committed); nothing secret in the repo",
+      "**Default / protected branches**: default branch `main`; rulesets and protected branches not queryable here, so treat `main` as unprotected but push only when asked",
+      "**CI/CD deploy targets**: None configured — hosted Postgres per `docs/DEPLOYMENT.md`, no deploy automation evidenced",
+      "**Network posture**: None configured — local development against `http://127.0.0.1:8000` (uvicorn)",
+      "**Source control**: The trusted repo and its remote(s) only (no additional orgs configured) — `github.com/Laren27/Flare` — as scoped by the Trusted repo and Repository visibility entries above",
+      "**Trusted internal domains**: None configured",
+      "**Trusted cloud buckets**: None configured",
+      "**Key internal services**: local FastAPI/uvicorn app on `127.0.0.1:8000` and its PostgreSQL database (project-local, not shared infrastructure)",
+      "**Internal package registry**: None configured — public PyPI via pip",
+      "**Sensitive data locations & audiences**: `backend/.env` (credentials, JWT signing config, LLM API key), the PostgreSQL database (civilian SOS reports, responder identities and locations — personal data), uploaded responder certificates, and `backend/tests/test_secret_handling.py` fixtures; preserve exact handles when known and share only with audiences cleared at the [named+specifics] bar",
+      "**Data retention / declassification**: None configured",
+      "**Sensitive remote targets**: any namespace, host, or container whose name carries `prod` or `production` as a whole word or name segment (hyphen/underscore/dot-delimited — e.g. matches `prod-db`, not `producer`)",
+      "**Protected deployment namespaces / environments**: None configured — fall back to the Sensitive remote targets heuristic",
+      "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries `prod` or `production` as a whole word or name segment",
+      "### User-specific",
+      "**Primary use of Claude Code**: software development — solo 8-week semester project (FLARE real-time emergency dispatch: Python 3.11+/FastAPI, PostgreSQL/SQLAlchemy, WebSockets, JWT, Leaflet.js)",
+      "**Trusted repo**: `C:\\Users\\laren\\dev\\Flare` and its remote `github.com/Laren27/Flare`. When the repo's public/private visibility is given — by the Repository visibility entry or the user's own message — use it to scope what is OK to commit or push there: confidential material is fine in a private repo; in a public one, only that repo's own work is — and content ported, repointed, or first read from outside this session's repo is not its own work, whoever directed the port. Visibility scopes confidential material only: secrets and sensitive data (personal & entrusted) are never cleared into any repo by its visibility (see Definitions).",
+      "**Org-specific CLIs**: None configured — observed tooling is standard (python, pip, git, uvicorn, npm/node, javac/java, gcc/g++, wsl, playwright, md5sum)",
+      "**Routine local workflows**: running `sim/seed.py` and `sim/scenarios/coverage.py` against the local dev database, `uvicorn` on 127.0.0.1:8000, and pytest under `tests/` — all local, no remote side effects"
+    ]
+  }
+}
