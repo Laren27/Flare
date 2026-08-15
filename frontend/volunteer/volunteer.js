@@ -9,7 +9,7 @@
  * the page says so rather than implying the numbers were measured.
  */
 
-import { api, auth, requireAuth } from "../shared/api.js";
+import { api, auth, currentPosition, requireAuth } from "../shared/api.js";
 import { formatDistance, initials } from "../shared/format.js";
 import { RealtimeChannel } from "../shared/ws.js";
 import { createMap, incidentMarker, leafletAvailable } from "../shared/map.js";
@@ -19,6 +19,92 @@ import { mockBadges, mockRecentAlerts } from "../shared/mock.js";
 const el = (id) => document.getElementById(id);
 let currentAlert = null;
 let alertMap = null;
+
+/* ---- availability ------------------------------------------------------- */
+/* Going online publishes a position (ADR-026). The server refuses to record
+ * availability without one, so this is not a formality: a volunteer who denies
+ * location permission genuinely cannot go on duty, and is told exactly that
+ * rather than being left online and permanently undispatchable. */
+
+// Chapter 17 asks for location while a session is active. Only while ONLINE --
+// tracking someone who has declared themselves off duty is a privacy cost for
+// no dispatch benefit, since an offline volunteer is never a candidate.
+const LOCATION_REFRESH_MS = 60_000;
+let refreshTimer = null;
+
+function renderVolunteerState(state) {
+  const online = state.availability;
+  el("availability").checked = online;
+  el("availability-text").textContent = online ? "Online" : "Offline";
+  el("availability-detail").textContent = online
+    ? `Visible to the dispatcher at ${state.lat.toFixed(4)}, ${state.lng.toFixed(4)}`
+    : "You will not receive alerts while offline.";
+
+  const verified = el("verified-pill");
+  verified.textContent = state.verified ? "Verified responder" : "Not yet verified";
+  verified.className = `pill ${state.verified ? "pill--success" : "pill--warn"}`;
+
+  el("skill-pill").textContent = state.skills.replace(/_/g, " ");
+
+  // An unverified volunteer is rejected at every dispatch (ADR-021), so being
+  // online is not enough on its own and the page should not imply otherwise.
+  if (online && !state.verified) {
+    el("availability-detail").textContent =
+      "Online, but unverified — the dispatcher will not select you until an admin verifies you.";
+  }
+}
+
+function availabilityError(message) {
+  const node = el("availability-error");
+  node.textContent = message;
+  node.hidden = false;
+}
+
+function stopRefreshing() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = null;
+}
+
+function startRefreshing() {
+  stopRefreshing();
+  refreshTimer = setInterval(async () => {
+    try {
+      const position = await currentPosition();
+      await api.setAvailability(true, position);
+    } catch {
+      // A refresh that fails leaves the last known position in place, which is
+      // the honest fallback -- the engine keeps dispatching on where we last
+      // genuinely were rather than on a guess.
+    }
+  }, LOCATION_REFRESH_MS);
+}
+
+async function onAvailabilityChange(event) {
+  const wantsOnline = event.target.checked;
+  const input = el("availability");
+  input.disabled = true;
+  el("availability-error").hidden = true;
+
+  try {
+    if (wantsOnline) {
+      el("availability-text").textContent = "Getting your location…";
+      const position = await currentPosition();
+      renderVolunteerState(await api.setAvailability(true, position));
+      startRefreshing();
+    } else {
+      stopRefreshing();
+      renderVolunteerState(await api.setAvailability(false));
+    }
+  } catch (error) {
+    // Put the switch back where the server actually has it. Leaving it flipped
+    // would show "Online" for a volunteer the dispatcher will never select.
+    input.checked = !wantsOnline;
+    el("availability-text").textContent = input.checked ? "Online" : "Offline";
+    availabilityError(error.detail || error.message);
+  } finally {
+    input.disabled = false;
+  }
+}
 
 /* ---- static panels ------------------------------------------------------ */
 
@@ -115,7 +201,7 @@ async function declineCurrent() {
 
 /* ---- boot --------------------------------------------------------------- */
 
-function boot() {
+async function boot() {
   const user = requireAuth("volunteer");
   if (!user) return;
 
@@ -125,12 +211,17 @@ function boot() {
   renderRecent();
   renderBadges();
 
-  el("availability").addEventListener("change", (event) => {
-    // There is no volunteers router: PATCH /volunteers/availability does not
-    // exist. The control is wired to its own label only, and is not pretending
-    // to have changed anything server-side.
-    el("availability-text").textContent = event.target.checked ? "Online" : "Offline";
-  });
+  el("availability").addEventListener("change", onAvailabilityChange);
+
+  // Render from the server rather than from a default. The switch must open
+  // showing what the dispatcher believes, not what this page assumes.
+  try {
+    const state = await api.volunteerMe();
+    renderVolunteerState(state);
+    if (state.availability) startRefreshing();
+  } catch (error) {
+    availabilityError(`Could not read your availability: ${error.detail || error.message}`);
+  }
 
   el("alert-accept").addEventListener("click", acceptCurrent);
   el("alert-decline").addEventListener("click", declineCurrent);
