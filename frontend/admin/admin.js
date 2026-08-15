@@ -137,9 +137,15 @@ function renderFirstDispatch(m) {
 /* ---- dispatch funnel ---------------------------------------------------- */
 
 function renderFunnel(m) {
-  const data = m.dispatch_funnel.rows.map((r) => ({ stage: r.stage, count: num(r.count) }));
+  const all = m.dispatch_funnel.rows.map((r) => ({ stage: r.stage, count: num(r.count) }));
   trace("funnel-trace", m.dispatch_funnel.query_file);
-  if (!data.length) return;
+  if (!all.length) return;
+
+  // Cancelled is an exit from the funnel, not a rung in it (ADR-025). Left in
+  // the bar list it would be handed the drop-off arithmetic and report a loss
+  // of every resolved incident, which is the opposite of what it means.
+  const data = all.filter((d) => d.stage !== "Cancelled");
+  const cancelled = all.find((d) => d.stage === "Cancelled");
 
   const W = 460, rowH = 34;
   const H = data.length * rowH + 8;
@@ -162,10 +168,21 @@ function renderFunnel(m) {
     })
     .join("");
 
-  el("funnel-chart").innerHTML = `${svg(W, H, 'aria-label="Dispatch funnel"')}${rows}</svg>`;
+  el("funnel-chart").innerHTML =
+    `${svg(W, H, 'aria-label="Dispatch funnel"')}${rows}</svg>` +
+    // Named beneath the bars so the Accepted-to-Resolved gap reads as a
+    // withdrawal rather than as responders abandoning people.
+    (cancelled?.count
+      ? `<p class="tiny muted mt-2">Of these, <span class="strong numeric">${cancelled.count}</span> ` +
+        `were cancelled by the citizen and never reached a resolution.</p>`
+      : "");
+
   el("funnel-table").innerHTML = table(
     ["Stage", "Count", "Drop-off"],
-    data.map((d, i) => [d.stage, d.count, i === 0 ? "—" : data[i - 1].count - d.count])
+    [
+      ...data.map((d, i) => [d.stage, d.count, i === 0 ? "—" : data[i - 1].count - d.count]),
+      ...(cancelled ? [["Cancelled (exit)", cancelled.count, "—"]] : []),
+    ]
   );
 }
 
