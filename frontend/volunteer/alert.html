@@ -40,23 +40,18 @@
         <div class="card stack">
           <div class="row row--nowrap">
             <div class="avatar" style="background:var(--red-tint);color:var(--flare-red)">❤️</div>
+            <!-- No area line. There is no reverse geocoding anywhere in the
+                 system, so the neighbourhood name that used to sit here was a
+                 fixed string shown even on live alerts. -->
             <div>
               <div class="strong" id="category">Cardiac Arrest</div>
               <div class="tiny muted"><span id="distance">1.2 km</span> away</div>
-              <div class="tiny muted" id="area">MG Road, Bangalore</div>
             </div>
           </div>
 
           <div>
             <div class="stat__label">Reported</div>
             <div class="small" id="description">Collapsed, not breathing</div>
-          </div>
-
-          <div>
-            <div class="stat__label">Required Skills</div>
-            <div class="row row--tight" style="margin-top:var(--s-1)">
-              <span class="chip">CPR</span><span class="chip chip--info">First Aid</span>
-            </div>
           </div>
 
           <div class="map" style="height:150px" id="mini-map">
@@ -102,8 +97,13 @@
           <div class="terminal">
             <div class="terminal__icon" style="background:var(--green-tint)">🚑</div>
             <h2 class="terminal__title">You are assigned</h2>
-            <p class="terminal__body">Head to the incident. The citizen can see you are on the way.</p>
-            <a class="btn btn--success btn--block" href="#navigate">Navigate to incident</a>
+            <p class="terminal__body">
+              Head to the incident. The citizen can see that a responder has been assigned.
+            </p>
+            <!-- The "Navigate to incident" button pointed at href="#navigate",
+                 which is nothing. Turn-by-turn is not built and neither is
+                 responder location, so there is no navigation to hand off to. -->
+            <a class="btn btn--ghost" href="/app/volunteer/">Back to dashboard</a>
           </div>
         </div>
       </section>

@@ -13,19 +13,13 @@ import { api, auth, initials, requireAuth } from "../shared/api.js";
 import { RealtimeChannel } from "../shared/ws.js";
 import { createMap, formatDistance, incidentMarker, leafletAvailable } from "../shared/map.js";
 import { initNav } from "../shared/nav.js";
-import { mockBadges, mockRecentAlerts, mockVolunteerStats } from "../shared/mock.js";
+import { mockBadges, mockRecentAlerts } from "../shared/mock.js";
 
 const el = (id) => document.getElementById(id);
 let currentAlert = null;
 let alertMap = null;
 
 /* ---- static panels ------------------------------------------------------ */
-
-function renderStats() {
-  el("stat-responses").textContent = mockVolunteerStats.totalResponses;
-  el("stat-lives").textContent = mockVolunteerStats.livesImpacted;
-  el("stat-rating").textContent = `${mockVolunteerStats.rating} ★`;
-}
 
 function renderRecent() {
   el("recent-alerts").innerHTML = mockRecentAlerts
@@ -68,11 +62,6 @@ function openAlert(payload) {
   el("alert-description").textContent = payload.description || "No description provided";
   el("alert-distance").textContent = formatDistance(payload.distance_m);
   el("alert-message").hidden = true;
-
-  el("alert-skills").innerHTML = payload.ai_category
-    ? '<span class="chip">CPR</span><span class="chip chip--info">First Aid</span>'
-    : '<span class="chip chip--info">Any responder</span>';
-
   el("alert-accept").disabled = false;
   el("alert-decline").disabled = false;
   el("alert-overlay").hidden = false;
@@ -132,7 +121,6 @@ function boot() {
   el("user-name").textContent = user.name;
   el("user-initials").textContent = initials(user.name);
   initNav();
-  renderStats();
   renderRecent();
   renderBadges();
 

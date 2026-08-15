@@ -81,20 +81,21 @@
             <div id="responder-block">
               <div class="stat__label" style="margin-bottom:var(--s-2)">Responder</div>
               <div class="responder">
-                <div class="avatar avatar--green" id="responder-initials">AS</div>
+                <div class="avatar avatar--green" id="responder-initials">R</div>
                 <div style="flex:1">
                   <div class="strong" id="responder-name">—</div>
-                  <div class="tiny muted"><span id="responder-rating">—</span> ★</div>
                 </div>
-                <button class="btn btn--ghost" aria-label="Call responder">📞</button>
-                <button class="btn btn--ghost" aria-label="Message responder">💬</button>
               </div>
+              <!-- Live responder tracking is not built (Ch. 26). Nothing writes a
+                   responder position, so there is no marker to move and no ETA to
+                   compute -- and a screen that showed one anyway would be claiming
+                   a capability the backend does not have (Rule 007). -->
+              <p class="tiny muted" style="margin-top:var(--s-3)">
+                Live location and ETA are not built. You will see that a responder has been
+                assigned, but not where they are.
+              </p>
             </div>
 
-            <div>
-              <div class="stat__label">ETA</div>
-              <div class="strong" id="eta-text">—</div>
-            </div>
             <div>
               <div class="stat__label">Type</div>
               <div class="strong" id="incident-type">Unspecified</div>
@@ -110,7 +111,6 @@
 
         <div class="card card--flush" style="position:relative">
           <div class="map map--tall" id="map"></div>
-          <div class="map__badge" id="map-badge" hidden></div>
         </div>
       </div>
 

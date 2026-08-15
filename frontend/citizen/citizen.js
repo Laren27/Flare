@@ -13,16 +13,13 @@ import { api, auth, currentPosition, initials, requireAuth } from "../shared/api
 import { RealtimeChannel } from "../shared/ws.js";
 import {
   createMap,
-  etaMinutes,
-  formatDistance,
   incidentMarker,
   leafletAvailable,
   radiusCircles,
-  responderMarker,
   showFallback,
 } from "../shared/map.js";
 import { initNav } from "../shared/nav.js";
-import { CENTRE, mockIncident, mockResponder } from "../shared/mock.js";
+import { CENTRE, mockIncident } from "../shared/mock.js";
 
 const STATES = ["idle", "active", "expanding", "none"];
 const POLL_MS = 2000;
@@ -37,7 +34,7 @@ let incident = null;
 let pollTimer = null;
 let startedAt = null;
 let map = null;
-let markers = { incident: null, responder: null, circles: [] };
+let markers = { incident: null, circles: [] };
 
 /* ---- state rendering --------------------------------------------------- */
 
@@ -85,19 +82,12 @@ function drawIncident(centre, radiusM) {
   if (!markers.incident) markers.incident = incidentMarker(map, centre);
 }
 
-function drawResponder(point, label, centre) {
-  if (!map) return;
-  markers.responder?.remove();
-  markers.responder = responderMarker(map, point, label);
-  const badge = el("map-badge");
-  const distance = window.L.latLng(point.lat, point.lng)
-    .distanceTo(window.L.latLng(centre.lat, centre.lng));
-  badge.textContent = `ETA ${etaMinutes(distance)} min · ${formatDistance(distance)}`;
-  badge.hidden = false;
-  map.fitBounds(
-    window.L.latLngBounds([point.lat, point.lng], [centre.lat, centre.lng]).pad(0.45)
-  );
-}
+/* There is deliberately no responder marker. Nothing in the system writes a
+ * responder's position after acceptance, so there is no coordinate to draw and
+ * no distance from which to derive an ETA. The plumbing for both existed here
+ * and was reachable only from `?state=active`, which meant the preview promised
+ * a capability the live path could never deliver -- the exact shape of claim
+ * Rule 007 forbids. Removed rather than left dormant. */
 
 /* ---- live incident ----------------------------------------------------- */
 
@@ -112,13 +102,9 @@ function renderIncident(sos) {
     el("incident-location").textContent = `${centre.lat.toFixed(4)}, ${centre.lng.toFixed(4)}`;
     el("incident-type").textContent = sos.ai_category || "Unspecified";
     drawIncident(centre, sos.current_radius_m);
-    // Responder live location is not built (Ch. 26) -- nothing pushes the
-    // responder's position to the citizen's socket, so the assignment itself is
-    // what is real here.
+    // The assignment is the whole of what is real here: an id, from the accept
+    // lock. No name endpoint exists, and no position (Ch. 26).
     el("responder-name").textContent = `Responder #${sos.accepted_by}`;
-    el("responder-initials").textContent = "R";
-    el("responder-rating").textContent = "—";
-    el("eta-text").textContent = "Responder en route";
     return;
   }
 
@@ -193,15 +179,14 @@ function renderMockState(name) {
   showState(name);
 
   if (name === "active") {
+    // Matches the live path exactly -- an assigned responder id and nothing
+    // more. A preview that showed a name, a rating and a moving marker would be
+    // previewing a different product.
     renderSteps(2);
-    el("responder-name").textContent = mockResponder.name;
-    el("responder-initials").textContent = initials(mockResponder.name);
-    el("responder-rating").textContent = mockResponder.rating.toFixed(1);
-    el("eta-text").textContent = `${etaMinutes(mockResponder.distance_m)} min (${formatDistance(mockResponder.distance_m)} away)`;
-    el("incident-type").textContent = "Cardiac Arrest";
-    el("incident-location").textContent = "MG Road, Bangalore";
+    el("responder-name").textContent = "Responder #42";
+    el("incident-type").textContent = "Unspecified";
+    el("incident-location").textContent = `${CENTRE.lat.toFixed(4)}, ${CENTRE.lng.toFixed(4)}`;
     drawIncident(CENTRE, mockIncident.current_radius_m);
-    drawResponder(mockResponder, initials(mockResponder.name), CENTRE);
   }
 
   if (name === "expanding") {

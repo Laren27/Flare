@@ -47,21 +47,24 @@
 
   <main class="app__main stack stack--loose">
 
-    <div class="grid grid--stats">
-      <div class="card row row--between">
-        <div>
-          <div class="stat__label">Availability</div>
-          <div class="strong" id="availability-text">Offline</div>
-        </div>
-        <label class="switch">
-          <input type="checkbox" id="availability">
-          <span class="switch__track"></span>
-          <span class="visually-hidden">Toggle availability</span>
-        </label>
+    <!-- Total Responses, Lives Impacted and Rating used to sit here. All three
+         were fixtures, and none of them has a query behind it: there is no
+         responder-history metric and no rating column anywhere in the schema.
+         Removed rather than relabelled -- a number that was never measured has
+         no honest presentation at dashboard scale (Rule 007). -->
+    <div class="card row row--between">
+      <div>
+        <div class="stat__label">Availability</div>
+        <div class="strong" id="availability-text">Offline</div>
+        <p class="tiny muted" style="margin-top:var(--s-1)" id="availability-note">
+          Not built — this toggle does not yet reach the server.
+        </p>
       </div>
-      <div class="stat"><div class="stat__label">Total Responses</div><div class="stat__value" id="stat-responses">—</div></div>
-      <div class="stat"><div class="stat__label">Lives Impacted</div><div class="stat__value" id="stat-lives">—</div></div>
-      <div class="stat"><div class="stat__label">Rating</div><div class="stat__value" id="stat-rating">—</div></div>
+      <label class="switch">
+        <input type="checkbox" id="availability">
+        <span class="switch__track"></span>
+        <span class="visually-hidden">Toggle availability</span>
+      </label>
     </div>
 
     <div class="grid grid--halves">
@@ -116,10 +119,9 @@
         <div class="stat__label">Reported</div>
         <div class="small" id="alert-description">—</div>
       </div>
-      <div>
-        <div class="stat__label">Required Skills</div>
-        <div class="row row--tight" id="alert-skills"></div>
-      </div>
+      <!-- No "Required Skills" row. The dispatch engine ranks by skill, it does
+           not filter (ADR-021), so no incident carries a required-skill set --
+           the chips here were two hard-coded strings. -->
       <div class="map" style="height:160px" id="alert-map"></div>
       <div id="alert-message" class="toast" hidden></div>
     </div>

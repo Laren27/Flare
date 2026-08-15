@@ -17,14 +17,10 @@
 
 export const CENTRE = { lat: 12.9716, lng: 77.5946 };
 
-export const mockResponder = {
-  name: "Arjun Singh",
-  rating: 4.8,
-  skill: "cpr",
-  distance_m: 1200,
-  lat: 12.9805,
-  lng: 77.5992,
-};
+/* `mockResponder` (name, rating, position) and `mockVolunteerStats` (responses,
+ * lives impacted, rating) were removed with the screens that rendered them.
+ * Neither had a backing column or query, and leaving unused fixtures in place
+ * invites them back onto a screen later. */
 
 export const mockIncident = {
   id: 128,
@@ -47,12 +43,6 @@ export const mockAlert = {
   ai_category: "Cardiac Arrest",
   ai_priority: "high",
   created_at: new Date().toISOString(),
-};
-
-export const mockVolunteerStats = {
-  totalResponses: 56,
-  livesImpacted: 23,
-  rating: 4.8,
 };
 
 export const mockRecentAlerts = [
