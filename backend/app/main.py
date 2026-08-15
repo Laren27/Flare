@@ -15,7 +15,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
-from app.routers import admin, auth, sos, ws
+from app.routers import admin, auth, sos, volunteers, ws
 
 
 def assert_usable_event_loop() -> None:
@@ -109,6 +109,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(sos.router)
     app.include_router(ws.router)
+    app.include_router(volunteers.router)
     app.include_router(admin.router)
 
     # Mounted last so it cannot shadow an API route. html=True serves
