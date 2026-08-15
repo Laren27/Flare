@@ -20,4 +20,9 @@ SELECT
     max(extract(epoch FROM (matched_at - created_at)))                AS max_seconds
 FROM sos
 WHERE matched_at IS NOT NULL
+  -- Cancelled incidents are excluded (ADR-025) so every figure here describes
+  -- an incident a responder was actually still travelling to. This is the
+  -- arguable half of that decision: the acceptance time of an incident
+  -- withdrawn afterwards was genuinely measured, and is discarded here.
+  AND status <> 'cancelled'
   AND created_at >= now() - make_interval(days => :window_days);
