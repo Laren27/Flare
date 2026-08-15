@@ -3,7 +3,8 @@
  * Leaflet and its tiles come from a CDN, which means the map is the one part
  * of the UI that needs network. Ch. 25 lists demo-day network failure as a
  * named risk, so every entry point here degrades to a styled placeholder
- * rather than an empty box or a thrown error. Vendoring is a week 7 task.
+ * rather than an empty box or a thrown error. Vendoring is deliberately not
+ * done, and recorded as such in Ch. 26.
  *
  * ETA is straight-line distance over an average speed, not routing. Routing
  * APIs are named in Future Scope (Ch. 26); claiming a routed ETA we have not

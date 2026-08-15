@@ -1,6 +1,6 @@
 /* Citizen view -- screens 2, 6, 7 and 8 as states of one page.
  *
- * Live against the week 2-4 backend: POST /sos really dispatches, and the
+ * Live against the dispatch engine: POST /sos really dispatches, and the
  * status the page renders is polled from GET /sos/{id}. The escalation states
  * are real -- they appear because the ADR-012 state machine actually widened
  * the radius, not because a timer here pretended it did.
@@ -112,8 +112,9 @@ function renderIncident(sos) {
     el("incident-location").textContent = `${centre.lat.toFixed(4)}, ${centre.lng.toFixed(4)}`;
     el("incident-type").textContent = sos.ai_category || "Unspecified";
     drawIncident(centre, sos.current_radius_m);
-    // The responder's live position arrives over the citizen's own socket in a
-    // later week; until then the assignment itself is what is real here.
+    // Responder live location is not built (Ch. 26) -- nothing pushes the
+    // responder's position to the citizen's socket, so the assignment itself is
+    // what is real here.
     el("responder-name").textContent = `Responder #${sos.accepted_by}`;
     el("responder-initials").textContent = "R";
     el("responder-rating").textContent = "—";

@@ -1,13 +1,15 @@
 /* Fixture data for states the live backend cannot conveniently produce.
  *
- * Week 5 renders real data wherever the backend exists (weeks 2-4). Three
- * things are still mocked, for different reasons:
+ * The views render real data wherever the backend supports it. What remains
+ * here is mocked for two different reasons:
  *
- *   1. Admin analytics -- the queries are week 6. Structure now, numbers later.
- *   2. Expanding-search and no-responder-found -- real, but they take a live
- *      escalation and 30s a rung to reach. `?state=` renders them on demand.
- *   3. Already-accepted dismissal -- real, but it needs a second responder to
- *      win the race first.
+ *   1. States that are real but awkward to summon -- expanding-search and
+ *      no-responder-found take a live escalation and 30s a rung to reach, and
+ *      the already-accepted dismissal needs a second responder to win the race
+ *      first. `?state=` and `?view=` render them on demand.
+ *   2. Features that do not exist -- the verification queue and the volunteer's
+ *      own history have no backing query. These are labelled Not built on
+ *      screen, not merely left unlabelled.
  *
  * Anything here is labelled as sample data on screen. Rule 007 cuts both ways:
  * the demo must not imply these numbers were measured.
@@ -66,7 +68,10 @@ export const mockBadges = [
   { icon: "🏅", label: "Quick Responder", note: "Top 10%" },
 ];
 
-/* ---- Admin analytics (Ch. 18A structure, week 6 numbers) ---------------- */
+/* ---- Admin fixtures ------------------------------------------------------
+ * The analytics shapes below predate the live /admin/analytics endpoint and
+ * are no longer rendered anywhere; `pendingVolunteers` is the one entry still
+ * in use, by the Future Scope verification queue. */
 
 export const mockAdmin = {
   stats: [

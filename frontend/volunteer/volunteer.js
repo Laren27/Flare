@@ -5,8 +5,8 @@
  * "already handled" state rather than an error, because being second is a
  * correct outcome, not a client mistake.
  *
- * Stats and badges are sample data -- there is no responder-history query yet
- * (week 6), and the page says so rather than implying the numbers were measured.
+ * Stats and badges are sample data -- there is no responder-history query, and
+ * the page says so rather than implying the numbers were measured.
  */
 
 import { api, auth, initials, requireAuth } from "../shared/api.js";
@@ -42,7 +42,9 @@ function renderRecent() {
       </div>`
     )
     .join("");
-  el("recent-note").textContent = "Sample data — responder history queries arrive in week 6.";
+  el("recent-note").textContent =
+    "Sample data — not built. There is no responder-history query, so these rows " +
+    "were never measured.";
 }
 
 function renderBadges() {
@@ -135,8 +137,9 @@ function boot() {
   renderBadges();
 
   el("availability").addEventListener("change", (event) => {
-    // PATCH /volunteers/availability is week 6; the control is wired to its own
-    // label only, and is not pretending to have changed anything server-side.
+    // There is no volunteers router: PATCH /volunteers/availability does not
+    // exist. The control is wired to its own label only, and is not pretending
+    // to have changed anything server-side.
     el("availability-text").textContent = event.target.checked ? "Online" : "Offline";
   });
 
