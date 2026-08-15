@@ -9,9 +9,10 @@
  * the page says so rather than implying the numbers were measured.
  */
 
-import { api, auth, initials, requireAuth } from "../shared/api.js";
+import { api, auth, requireAuth } from "../shared/api.js";
+import { formatDistance, initials } from "../shared/format.js";
 import { RealtimeChannel } from "../shared/ws.js";
-import { createMap, formatDistance, incidentMarker, leafletAvailable } from "../shared/map.js";
+import { createMap, incidentMarker, leafletAvailable } from "../shared/map.js";
 import { initNav } from "../shared/nav.js";
 import { mockBadges, mockRecentAlerts } from "../shared/mock.js";
 
