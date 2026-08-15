@@ -49,9 +49,15 @@
         <p class="muted" style="max-width:34ch">
           Press the button below to send an SOS to nearby trained responders.
         </p>
-        <button class="sos-button" id="sos-button" type="button">SOS</button>
-        <p class="strong">Tap to Send SOS</p>
+        <!-- Starts disabled. Without a position there is nothing to dispatch
+             on, and a button that accepts the press and fails afterwards wastes
+             the seconds this screen exists to save. -->
+        <button class="sos-button" id="sos-button" type="button" disabled>SOS</button>
+        <p class="strong" id="sos-caption">Getting your location…</p>
         <p class="tiny muted" id="location-note">Locating you…</p>
+        <button class="btn btn--ghost" id="location-retry" type="button" hidden>
+          Try locating me again
+        </button>
 
         <!-- Optional, and collapsed by default. This is the only input to the
              single bounded AI call of ADR-005; without it every incident is
@@ -69,6 +75,10 @@
         </details>
 
         <div id="idle-error" class="toast toast--error" hidden></div>
+        <!-- Confirmation that a previous request ended, and how. Without it,
+             cancelling drops you back to this screen with no acknowledgement
+             that anything happened. -->
+        <div id="idle-note" class="toast toast--info" hidden></div>
       </div>
 
       <div class="card">
@@ -121,7 +131,14 @@
               <div class="strong small" id="incident-location">—</div>
             </div>
 
-            <button class="btn btn--outline-danger btn--block" id="cancel-button">Cancel Request</button>
+            <!-- Cancel, not resolve. This withdraws the request; it does not
+                 claim that help arrived (ADR-025). -->
+            <button class="btn btn--ghost btn--block" id="cancel-button">
+              Cancel this request
+            </button>
+            <p class="tiny muted center" id="cancel-note">
+              Only do this if you no longer need help.
+            </p>
           </div>
         </div>
 
@@ -163,6 +180,12 @@
           If you are able to, calling emergency services now is never the wrong choice.
         </p>
         <a class="btn btn--danger mt-3" href="tel:112">Call 112</a>
+
+        <!-- Cancelling is now reachable before a match too. A request triggered
+             by accident should not have to wait out three escalation rungs. -->
+        <p class="mt-4">
+          <button class="btn btn--ghost" id="cancel-searching">Cancel this request</button>
+        </p>
       </div>
     </section>
 
