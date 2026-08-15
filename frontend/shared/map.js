@@ -6,16 +6,13 @@
  * rather than an empty box or a thrown error. Vendoring is deliberately not
  * done, and recorded as such in Ch. 26.
  *
- * ETA is straight-line distance over an average speed, not routing. Routing
- * APIs are named in Future Scope (Ch. 26); claiming a routed ETA we have not
- * built would be exactly the slideware Rule 007 forbids.
+ * This module draws maps and nothing else. It carried the ETA and distance
+ * helpers until the screens that used them were removed; see the note at the
+ * foot of the file.
  */
 
 const TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-
-/** Average responder speed on foot/two-wheeler through city streets, m/s. */
-export const AVERAGE_SPEED_MPS = 5.5;
 
 export const leafletAvailable = () => typeof window.L !== "undefined";
 
@@ -95,26 +92,17 @@ export function radiusCircles(map, { lat, lng }, activeRadiusM, ladder = [1000, 
   });
 }
 
-export function etaMinutes(distanceM, speedMps = AVERAGE_SPEED_MPS) {
-  return Math.max(1, Math.round(distanceM / speedMps / 60));
-}
-
-export function formatDistance(distanceM) {
-  return distanceM < 1000
-    ? `${Math.round(distanceM)} m`
-    : `${(distanceM / 1000).toFixed(1)} km`;
-}
-
-/** Haversine, mirroring backend/app/services/haversine.py so the client can
- *  show a distance without a round trip. The server remains authoritative. */
-export function distanceM(a, b) {
-  const R = 6371008.8;
-  const toRad = (deg) => (deg * Math.PI) / 180;
-  const dPhi = toRad(b.lat - a.lat);
-  const dLambda = toRad(b.lng - a.lng);
-  const phi1 = toRad(a.lat);
-  const phi2 = toRad(b.lat);
-  const h =
-    Math.sin(dPhi / 2) ** 2 + Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(Math.min(1, h)));
-}
+/* `etaMinutes`, `AVERAGE_SPEED_MPS`, `distanceM` and `formatDistance` used to
+ * live here.
+ *
+ * The first three are gone rather than moved. They existed to render a
+ * straight-line ETA and a client-side distance for the responder marker, and
+ * nothing writes a responder position after acceptance -- so there is no
+ * coordinate to measure from and no ETA to derive. Keeping working helpers for
+ * a capability the product declares as not built is how that number finds its
+ * way back onto a screen (Ch. 26, Rule 007). The straight-line approach is
+ * recorded in the blueprint if it is ever wanted again.
+ *
+ * `formatDistance` moved to shared/format.js, which is where a string helper
+ * belongs -- two pages were importing the map module purely to format a number.
+ */
