@@ -5,6 +5,7 @@
  * performing, but where the network is structurally blind.
  */
 
+import { renderEmpty } from "../shared/states.js";
 import { SEQUENTIAL, bootAdmin, el, loadAnalytics, num, pct, trace } from "./shared.js";
 
 function renderCoverage(m) {
@@ -12,9 +13,12 @@ function renderCoverage(m) {
   trace("coverage-trace", m.coverage_gap.query_file);
 
   if (!rows.length) {
-    el("coverage").innerHTML = '<p class="small muted">No incidents in window.</p>';
-    el("coverage-worst").innerHTML =
-      '<p class="tiny muted">Nothing to rank until incidents exist. Seed a corpus with sim/scenarios/coverage.py.</p>';
+    renderEmpty(
+      el("coverage"),
+      "No incidents in this window, so there is no coverage to assess.",
+      "Seed a corpus with sim/scenarios/coverage.py."
+    );
+    renderEmpty(el("coverage-worst"), "Nothing to rank yet.");
     return;
   }
 
