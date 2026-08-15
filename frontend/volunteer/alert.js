@@ -6,7 +6,7 @@
  */
 
 import { api, auth } from "/app/shared/api.js";
-import { formatDistance } from "/app/shared/map.js";
+import { formatDistance } from "/app/shared/format.js";
 import { mockAlert } from "/app/shared/mock.js";
 
 const params = new URLSearchParams(location.search);
