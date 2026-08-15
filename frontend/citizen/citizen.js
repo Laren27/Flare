@@ -159,7 +159,11 @@ async function triggerSos() {
 
   try {
     if (!position) position = await currentPosition();
-    const sos = await api.createSos(position.lat, position.lng, null);
+    // Empty stays null rather than "": ai_summary treats a blank description as
+    // `skipped`, and sending an empty string would record it as a real report
+    // that the classifier declined.
+    const description = el("description").value.trim() || null;
+    const sos = await api.createSos(position.lat, position.lng, description);
     startedAt = Date.now();
     renderIncident({ ...sos, lat: position.lat, lng: position.lng });
     startPolling(sos.id);

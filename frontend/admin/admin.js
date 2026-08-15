@@ -17,6 +17,7 @@ import {
   bootAdmin,
   duration,
   el,
+  latency,
   loadAnalytics,
   num,
   pct,
@@ -102,6 +103,35 @@ function renderAcceptance(m) {
           stroke="#e2e8f0" stroke-width="1"/>${bars}</svg>`;
 
   el("acceptance-table").innerHTML = table(["Bucket", "Incidents"], data.map((d) => [d.bucket, d.count]));
+}
+
+/* ---- time to first dispatch --------------------------------------------- */
+
+function renderFirstDispatch(m) {
+  const row = m.time_to_first_dispatch.rows[0] ?? {};
+  const accepted = m.time_to_acceptance.rows[0] ?? {};
+  trace("dispatch-trace", m.time_to_first_dispatch.query_file);
+
+  const dispatched = num(row.dispatched_count);
+  if (!dispatched) {
+    el("dispatch-body").innerHTML =
+      '<p class="small muted">No incident has been dispatched in this window.</p>';
+    return;
+  }
+
+  el("fd-count").textContent = dispatched;
+  el("fd-p50").textContent = latency(row.p50_seconds);
+  el("fd-p90").textContent = latency(row.p90_seconds);
+  el("fd-max").textContent = latency(row.max_seconds);
+
+  // Acceptance includes the time a human took to answer; this metric does not.
+  // The difference is the human part, which is the comparison the metric exists
+  // to support -- arithmetic on two displayed figures, and labelled as such on
+  // the card rather than presented as a query result of its own.
+  const acceptP90 = num(accepted.p90_seconds);
+  el("fd-human").textContent = acceptP90
+    ? duration(Math.max(0, acceptP90 - num(row.p90_seconds)))
+    : "—";
 }
 
 /* ---- dispatch funnel ---------------------------------------------------- */
@@ -322,6 +352,7 @@ async function boot() {
 
   renderStats(m);
   renderAcceptance(m);
+  renderFirstDispatch(m);
   renderFunnel(m);
   renderTypes(m);
   renderEscalation(m);

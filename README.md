@@ -8,8 +8,9 @@ measured rather than guessed at.
 **Status: complete.** An SOS reaches nearby responders over WebSockets, exactly
 one can claim it, an incident nobody takes escalates 1km → 2km → 3km before
 terminating in an explicit `no_responder_found`, a single bounded LLM call
-enriches it off the critical path, and the admin dashboard reports all seven
-Chapter 18A metrics from named SQL files.
+enriches it off the critical path, and the admin views report all seven
+Chapter 18A metrics from named SQL files — six on the dashboard, the coverage
+grid on its own page.
 
 - [Deployment](docs/DEPLOYMENT.md) — hosted Postgres, environment, security posture
 - [Demo script](docs/DEMO_SCRIPT.md) — the four acts of Chapter 27, as a runbook
@@ -45,7 +46,7 @@ With the server running, open **http://127.0.0.1:8000/app/**.
 | Citizen | `/app/citizen/` | **live** — SOS, escalation, terminal states |
 | Volunteer | `/app/volunteer/` | **live** — WebSocket alerts, accept-lock |
 | Volunteer alert | `/app/volunteer/alert.html` | live, with preview states |
-| Admin — dashboard | `/app/admin/` | **live** — the Ch. 18A metrics from `analytics/queries/` |
+| Admin — dashboard | `/app/admin/` | **live** — six Ch. 18A metrics from `analytics/queries/` |
 | Admin — incidents | `/app/admin/incidents.html` | **live** — recent incidents, a snapshot per load |
 | Admin — volunteers | `/app/admin/volunteers.html` | sample data, controls disabled — Future Scope |
 | Admin — coverage | `/app/admin/coverage.html` | **live** — the coverage gap grid |

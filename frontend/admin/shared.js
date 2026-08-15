@@ -49,6 +49,20 @@ export function duration(seconds) {
   return `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
 }
 
+/**
+ * Sub-second-aware duration.
+ *
+ * Time-to-first-dispatch is measured in milliseconds -- the engine decides a
+ * whole dispatch wave in tens of them. Rounding that to whole seconds prints
+ * "0s", which reads as broken and throws away the single strongest number the
+ * system produces. Anything at or above a second falls through to `duration`.
+ */
+export function latency(seconds) {
+  const s = num(seconds);
+  if (s < 1) return `${Math.round(s * 1000)} ms`;
+  return duration(s);
+}
+
 export function pct(value) {
   return `${Math.round(num(value) * 100)}%`;
 }

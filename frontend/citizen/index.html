@@ -52,6 +52,22 @@
         <button class="sos-button" id="sos-button" type="button">SOS</button>
         <p class="strong">Tap to Send SOS</p>
         <p class="tiny muted" id="location-note">Locating you…</p>
+
+        <!-- Optional, and collapsed by default. This is the only input to the
+             single bounded AI call of ADR-005; without it every incident is
+             categorised `unspecified` because there is nothing to classify.
+             It must never gate the SOS -- pressing the button with this
+             untouched behaves exactly as it did before the field existed. -->
+        <details class="disclosure">
+          <summary>Add a detail (optional)</summary>
+          <textarea class="input" id="description" rows="3" maxlength="2000"
+                    placeholder="What has happened? e.g. collapsed, not breathing"></textarea>
+          <p class="tiny muted" style="margin-top:var(--s-2)">
+            Used once, to categorise and prioritise the incident. Dispatch never waits
+            for it — responders are alerted first, regardless.
+          </p>
+        </details>
+
         <div id="idle-error" class="toast toast--error" hidden></div>
       </div>
 

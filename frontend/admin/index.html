@@ -62,6 +62,34 @@
         <code class="trace" id="acceptance-trace"></code>
       </div>
 
+      <!-- Deliberately beside Time to Acceptance. On its own this number means
+           little; against acceptance it separates an engineering problem from a
+           network problem, which is the only reason Ch. 18A asks for it. -->
+      <div class="card">
+        <div class="card__header">
+          <div>
+            <h3 class="card__title">Time to First Dispatch</h3>
+            <p class="tiny muted">System latency alone — the part the code is responsible for</p>
+          </div>
+        </div>
+        <div id="dispatch-body">
+          <div class="row" style="gap:var(--s-5)">
+            <div><div class="stat__label">p50</div><div class="strong numeric" id="fd-p50">—</div></div>
+            <div><div class="stat__label">p90</div><div class="strong numeric" id="fd-p90">—</div></div>
+            <div><div class="stat__label">max</div><div class="strong numeric" id="fd-max">—</div></div>
+            <div><div class="stat__label">incidents</div><div class="strong numeric" id="fd-count">—</div></div>
+          </div>
+          <p class="small muted" style="margin-top:var(--s-4)">
+            Human latency at p90 is roughly <span class="strong numeric" id="fd-human">—</span> —
+            the gap between time-to-acceptance and this figure. Derived from the two
+            queries named here and on the panel beside it, not from a query of its own.
+          </p>
+        </div>
+        <code class="trace" id="dispatch-trace"></code>
+      </div>
+    </div>
+
+    <div class="grid grid--halves">
       <div class="card">
         <div class="card__header">
           <div>
@@ -74,9 +102,7 @@
         <div class="scroll-x" id="funnel-table" hidden></div>
         <code class="trace" id="funnel-trace"></code>
       </div>
-    </div>
 
-    <div class="grid grid--halves">
       <div class="card">
         <div class="card__header">
           <div>
@@ -92,7 +118,9 @@
         <div class="scroll-x" id="types-table" hidden></div>
         <code class="trace" id="types-trace"></code>
       </div>
+    </div>
 
+    <div class="grid grid--halves">
       <div class="card">
         <div class="card__header">
           <div>
@@ -105,9 +133,7 @@
         <div class="scroll-x" id="escalation-table" hidden></div>
         <code class="trace" id="escalation-trace"></code>
       </div>
-    </div>
 
-    <div class="grid grid--halves">
       <div class="card">
         <div class="card__header">
           <div>
@@ -120,7 +146,9 @@
         <div class="scroll-x" id="skill-table" hidden></div>
         <code class="trace" id="skill-trace"></code>
       </div>
+    </div>
 
+    <div class="grid grid--halves">
       <div class="card">
         <div class="card__header">
           <div>
