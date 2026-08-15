@@ -96,6 +96,35 @@ async def decline_sos(sos_id: int, user: CurrentUser, session: DbSession) -> Non
     await acceptance.decline(session, sos_id=sos_id, responder_id=user.id)
 
 
+@router.post("/{sos_id}/cancel", response_model=SOSStatusResponse)
+async def cancel_sos(sos_id: int, user: CurrentUser, session: DbSession) -> SOSStatusResponse:
+    """Withdraw an incident (ADR-025).
+
+    Distinct from resolve, which asserts that help arrived. Only the victim or
+    an admin may cancel: a responder deciding an emergency is over on the
+    citizen's behalf is not a call this system lets them make.
+    """
+    sos = await session.get(SOS, sos_id)
+    if sos is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such incident")
+
+    if user.id != sos.victim_id and user.role is not UserRole.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your incident")
+
+    cancelled = await acceptance.cancel(session, sos_id=sos_id)
+    if cancelled is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only a pending or matched incident can be cancelled",
+        )
+
+    # Same reasoning as acceptance: a withdrawn incident that kept escalating
+    # would alert strangers to an emergency that no longer exists (ADR-012).
+    escalation.tasks.cancel(sos_id)
+
+    return SOSStatusResponse.model_validate(cancelled)
+
+
 @router.post("/{sos_id}/resolve", response_model=SOSStatusResponse)
 async def resolve_sos(sos_id: int, user: CurrentUser, session: DbSession) -> SOSStatusResponse:
     sos = await session.get(SOS, sos_id)
