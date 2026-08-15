@@ -564,6 +564,32 @@
 }
 .input:focus { border-color: var(--blue); }
 
+/* ---- Not-built notice --------------------------------------------------- */
+/* A persistent statement that a feature does not exist -- as opposed to a
+   toast, which is feedback about something that just happened. Deliberately
+   quiet: this is neither an error nor a warning, it is the product stating its
+   own boundary, and styling it as alarm would punish the honesty.
+   Three of these had been written three different ways: a muted paragraph on
+   the citizen view, another under the volunteer availability toggle, and an
+   info toast on the admin verification queue.
+   Static markup by design. It must survive a JavaScript failure -- a
+   disclosure that vanishes when the page half-loads is worse than none. */
+
+.notice {
+  border-left: 3px solid var(--muted);
+  padding: var(--s-2) 0 var(--s-2) var(--s-3);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--muted);
+}
+.notice__label {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-2);
+}
+.notice code { font-size: 0.95em; }
+
 /* ---- Disclosure -------------------------------------------------------- */
 /* For input that is genuinely optional. Collapsed by default so it cannot
    compete with the primary action, but one tap away and keyboard-reachable
