@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coverage — FLARE Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/app/shared/tokens.css">
+<link rel="stylesheet" href="/app/shared/base.css">
+<link rel="stylesheet" href="/app/shared/components.css">
+<link rel="stylesheet" href="/app/admin/admin.css">
+</head>
+<body>
+
+<div class="app">
+  <nav class="sidebar app__sidebar" aria-label="Admin navigation">
+    <a class="brand brand--light sidebar__brand" href="/app/"><span class="brand__mark">🔥</span> FLARE</a>
+    <a class="sidebar__link" href="/app/admin/"><span class="sidebar__icon">📊</span><span class="sidebar__label">Dashboard</span></a>
+    <a class="sidebar__link" href="/app/admin/incidents.html"><span class="sidebar__icon">🚨</span><span class="sidebar__label">Incidents</span></a>
+    <a class="sidebar__link" href="/app/admin/volunteers.html"><span class="sidebar__icon">👥</span><span class="sidebar__label">Volunteers</span></a>
+    <a class="sidebar__link" href="/app/admin/coverage.html" aria-current="page"><span class="sidebar__icon">📈</span><span class="sidebar__label">Coverage</span></a>
+    <div class="sidebar__spacer"></div>
+    <a class="sidebar__link" href="#" id="logout"><span class="sidebar__icon">⏻</span><span class="sidebar__label">Logout</span></a>
+  </nav>
+
+  <header class="topbar">
+    <h1 style="font-size:var(--text-lg)">Coverage</h1>
+    <div class="spacer"></div>
+    <div class="responder">
+      <div class="avatar avatar--sm" id="user-initials">A</div>
+      <div class="tiny" style="line-height:1.2">
+        <div class="strong" id="user-name">—</div>
+        <div class="muted">Administrator</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="app__main stack stack--loose">
+
+    <div class="banner" id="banner">Loading analytics…</div>
+
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <h3 class="card__title">Coverage Gaps</h3>
+          <p class="tiny muted">Buckets with incidents but no eligible responder within the base radius</p>
+        </div>
+      </div>
+      <div class="scroll-x"><div class="heat" id="coverage"></div></div>
+      <div class="row row--between" style="margin-top:var(--s-3)">
+        <span class="tiny muted">Well covered</span>
+        <div id="coverage-scale" style="display:flex;gap:2px"></div>
+        <span class="tiny muted">Structurally blind</span>
+      </div>
+      <div class="list" style="margin-top:var(--s-4)" id="coverage-worst"></div>
+      <code class="trace" id="coverage-trace"></code>
+    </div>
+
+    <div class="card">
+      <div class="card__header"><h3 class="card__title">How to read this</h3></div>
+      <p class="small muted" style="max-width:70ch">
+        The operating area is bucketed into a fixed grid. A bucket darkens as more of its
+        incidents had zero eligible responders inside the base radius at the moment the
+        SOS was raised — computed from the dispatch event log, not from where responders
+        happen to be now. That distinction matters: this is the only metric that answers
+        <em>where should we recruit</em>, and it answers it from decisions the engine
+        actually made (ADR-014, ADR-015).
+      </p>
+      <p class="small muted" style="max-width:70ch;margin-top:var(--s-3)">
+        Grey cells contain no incidents at all. They are not coverage — they are absence
+        of evidence, and are deliberately not shaded as if they were safe.
+      </p>
+    </div>
+
+  </main>
+</div>
+
+<script type="module" src="/app/admin/coverage.js"></script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volunteers — FLARE Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/app/shared/tokens.css">
+<link rel="stylesheet" href="/app/shared/base.css">
+<link rel="stylesheet" href="/app/shared/components.css">
+<link rel="stylesheet" href="/app/admin/admin.css">
+</head>
+<body>
+
+<div class="app">
+  <nav class="sidebar app__sidebar" aria-label="Admin navigation">
+    <a class="brand brand--light sidebar__brand" href="/app/"><span class="brand__mark">🔥</span> FLARE</a>
+    <a class="sidebar__link" href="/app/admin/"><span class="sidebar__icon">📊</span><span class="sidebar__label">Dashboard</span></a>
+    <a class="sidebar__link" href="/app/admin/incidents.html"><span class="sidebar__icon">🚨</span><span class="sidebar__label">Incidents</span></a>
+    <a class="sidebar__link" href="/app/admin/volunteers.html" aria-current="page"><span class="sidebar__icon">👥</span><span class="sidebar__label">Volunteers</span></a>
+    <a class="sidebar__link" href="/app/admin/coverage.html"><span class="sidebar__icon">📈</span><span class="sidebar__label">Coverage</span></a>
+    <div class="sidebar__spacer"></div>
+    <a class="sidebar__link" href="#" id="logout"><span class="sidebar__icon">⏻</span><span class="sidebar__label">Logout</span></a>
+  </nav>
+
+  <header class="topbar">
+    <h1 style="font-size:var(--text-lg)">Volunteers</h1>
+    <div class="spacer"></div>
+    <div class="responder">
+      <div class="avatar avatar--sm" id="user-initials">A</div>
+      <div class="tiny" style="line-height:1.2">
+        <div class="strong" id="user-name">—</div>
+        <div class="muted">Administrator</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="app__main stack stack--loose">
+
+    <div class="card">
+      <div class="card__header">
+        <h3 class="card__title">Pending Verification</h3>
+        <span class="pill pill--muted">Future Scope</span>
+      </div>
+      <div class="toast toast--info" style="margin-bottom:var(--s-4)">
+        <strong>Not built.</strong> Certificate upload and admin approval need a
+        <code>certificate_path</code> column that does not exist, so the rows below are
+        sample data and the buttons are disabled. Manual approval is the deliberate
+        design (ADR-006) — automated document verification is a project of its own.
+      </div>
+      <div class="scroll-x"><table class="table" id="pending-table"></table></div>
+    </div>
+
+    <div class="card">
+      <div class="card__header"><h3 class="card__title">What is actually enforced</h3></div>
+      <p class="small muted" style="max-width:70ch">
+        Verification is a real column on the volunteer record and the dispatch engine
+        does honour it — an unverified volunteer is rejected during candidate evaluation
+        with reason <code>unverified</code>, and that rejection is logged like any other
+        (ADR-014, ADR-021). What is missing is the interface for changing that flag:
+        it is set by <code>sim/seed.py</code> or by hand, not by an admin approving a
+        document. The queue above shows the shape the feature would take.
+      </p>
+    </div>
+
+  </main>
+</div>
+
+<script type="module" src="/app/admin/volunteers.js"></script>
+</body>
+</html>

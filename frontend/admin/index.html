@@ -3,49 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin — FLARE</title>
+<title>Dashboard — FLARE Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/app/shared/tokens.css">
 <link rel="stylesheet" href="/app/shared/base.css">
 <link rel="stylesheet" href="/app/shared/components.css">
-<style>
-  .chart { width: 100%; overflow: visible; }
-  .chart text { font-family: var(--font-sans); fill: var(--muted); }
-  .chart .value { fill: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
-  .chart .mark { transition: opacity 0.12s var(--ease); }
-  .chart:hover .mark { opacity: 0.55; }
-  .chart .mark:hover { opacity: 1; }
-  .legend { display: flex; flex-wrap: wrap; gap: var(--s-3); font-size: var(--text-xs); }
-  .legend__item { display: inline-flex; align-items: center; gap: var(--s-2); }
-  .legend__swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
-  .heat { display: grid; gap: 2px; }
-  .heat__cell { aspect-ratio: 1; border-radius: 3px; }
-  .toggle-table {
-    background: none; border: none; color: var(--blue);
-    font-size: var(--text-xs); font-weight: 600; cursor: pointer; padding: 0;
-  }
-  .trace {
-    display: block; margin-top: var(--s-3); font-size: 11px; color: var(--muted);
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  }
-  .banner {
-    background: var(--blue-tint); border: 1px solid #bfdbfe; color: #1d4ed8;
-    border-radius: var(--radius); padding: var(--s-3) var(--s-4); font-size: var(--text-sm);
-  }
-  .banner code { font-size: 0.9em; }
-</style>
+<link rel="stylesheet" href="/app/admin/admin.css">
 </head>
 <body>
 
 <div class="app">
   <nav class="sidebar app__sidebar" aria-label="Admin navigation">
     <a class="brand brand--light sidebar__brand" href="/app/"><span class="brand__mark">🔥</span> FLARE</a>
-    <a class="sidebar__link" href="#" aria-current="page"><span class="sidebar__icon">📊</span><span class="sidebar__label">Dashboard</span></a>
-    <a class="sidebar__link" href="#incidents"><span class="sidebar__icon">🚨</span><span class="sidebar__label">Incidents</span></a>
-    <a class="sidebar__link" href="#volunteers"><span class="sidebar__icon">👥</span><span class="sidebar__label">Volunteers</span></a>
-    <a class="sidebar__link" href="#coverage-card"><span class="sidebar__icon">📈</span><span class="sidebar__label">Coverage</span></a>
+    <a class="sidebar__link" href="/app/admin/" aria-current="page"><span class="sidebar__icon">📊</span><span class="sidebar__label">Dashboard</span></a>
+    <a class="sidebar__link" href="/app/admin/incidents.html"><span class="sidebar__icon">🚨</span><span class="sidebar__label">Incidents</span></a>
+    <a class="sidebar__link" href="/app/admin/volunteers.html"><span class="sidebar__icon">👥</span><span class="sidebar__label">Volunteers</span></a>
+    <a class="sidebar__link" href="/app/admin/coverage.html"><span class="sidebar__icon">📈</span><span class="sidebar__label">Coverage</span></a>
     <div class="sidebar__spacer"></div>
     <a class="sidebar__link" href="#" id="logout"><span class="sidebar__icon">⏻</span><span class="sidebar__label">Logout</span></a>
   </nav>
@@ -160,44 +135,9 @@
       </div>
     </div>
 
-    <div class="card" id="coverage-card">
-      <div class="card__header">
-        <div>
-          <h3 class="card__title">Coverage Gaps</h3>
-          <p class="tiny muted">Buckets with incidents but no eligible responder within the base radius</p>
-        </div>
-      </div>
-      <div class="scroll-x"><div class="heat" id="coverage"></div></div>
-      <div class="row row--between" style="margin-top:var(--s-3)">
-        <span class="tiny muted">Well covered</span>
-        <div id="coverage-scale" style="display:flex;gap:2px"></div>
-        <span class="tiny muted">Structurally blind</span>
-      </div>
-      <div class="list" style="margin-top:var(--s-4)" id="coverage-worst"></div>
-      <code class="trace" id="coverage-trace"></code>
-    </div>
-
-    <div class="grid grid--halves">
-      <div class="card" id="volunteers">
-        <div class="card__header">
-          <h3 class="card__title">Pending Verification</h3>
-          <span class="pill pill--muted">Future Scope</span>
-        </div>
-        <div class="toast toast--info" style="margin-bottom:var(--s-4)">
-          <strong>Not built.</strong> Certificate upload and admin approval need a
-          <code>certificate_path</code> column that does not exist, so the rows below are
-          sample data and the buttons are disabled. Manual approval is the deliberate
-          design (ADR-006) — automated document verification is a project of its own.
-        </div>
-        <div class="scroll-x"><table class="table" id="pending-table"></table></div>
-      </div>
-
-      <div class="card" id="incidents">
-        <div class="card__header"><h3 class="card__title">Recent Incidents</h3></div>
-        <div class="scroll-x"><table class="table" id="incidents-table"></table></div>
-        <code class="trace">GET /admin/incidents</code>
-      </div>
-    </div>
+    <p class="tiny muted">
+      Coverage gaps are on their own page — <a href="/app/admin/coverage.html">Coverage</a>.
+    </p>
 
   </main>
 </div>

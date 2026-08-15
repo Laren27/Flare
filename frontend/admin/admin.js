@@ -1,4 +1,4 @@
-/* Admin analytics -- screen 4, the seven Chapter 18A metrics.
+/* Admin dashboard -- the Chapter 18A metrics that describe the dispatch loop.
  *
  * Every figure is fetched from /admin/analytics, which executes a named .sql
  * file per metric. Each card shows the filename that produced its numbers,
@@ -6,56 +6,25 @@
  * does not ship -- and printing the filename is what makes that checkable from
  * the dashboard rather than from the source tree.
  *
- * Charts are hand-rolled inline SVG: a charting library is outside the fixed
- * stack, and these forms are simple enough that adding one would be a
- * dependency bought to avoid an afternoon.
- *
- * The categorical order below is not a taste choice. The locked spec palette
- * fails colourblind separation in its natural order -- amber against green
- * scores dE 5.7 under protanopia. Reordered to red -> amber -> blue -> green
- * the worst adjacent pair scores 13.9 and every check passes. Amber and green
- * also fall under 3:1 against white, which obligates relief: every mark is
- * direct-labelled and every chart has a table view.
+ * Coverage gaps live on their own page: the grid is the one panel that wants
+ * width, and it answers a different question (where to recruit) from the rest
+ * of this page (how the loop is performing).
  */
 
-import { api, auth, initials, requireAuth } from "../shared/api.js";
-import { initNav } from "../shared/nav.js";
-import { mockAdmin } from "../shared/mock.js";
-
-const CATEGORICAL = ["#EF4444", "#F59E0B", "#3B82F6", "#22C55E"];
-const OTHER = "#64748B";
-const SEQUENTIAL = ["#FEF2F2", "#FEE2E2", "#FCA5A5", "#F87171", "#EF4444", "#B91C1C", "#7F1D1D"];
-
-const el = (id) => document.getElementById(id);
-const num = (v) => (v === null || v === undefined ? 0 : Number(v));
-
-function svg(width, height, extra = "") {
-  return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" ${extra}>`;
-}
-
-function table(headers, rows) {
-  return `<table class="table"><thead><tr>${headers
-    .map((h) => `<th>${h}</th>`)
-    .join("")}</tr></thead><tbody>${rows
-    .map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join("")}</tr>`)
-    .join("")}</tbody></table>`;
-}
-
-function duration(seconds) {
-  const s = Math.round(num(seconds));
-  if (s < 60) return `${s}s`;
-  return `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
-}
-
-function pct(value) {
-  return `${Math.round(num(value) * 100)}%`;
-}
-
-/** Stamp the query file onto a card, per Ch. 18A traceability. */
-function trace(cardId, queryFile) {
-  const node = el(cardId);
-  if (node) node.textContent = queryFile;
-}
+import {
+  CATEGORICAL,
+  OTHER,
+  bootAdmin,
+  duration,
+  el,
+  loadAnalytics,
+  num,
+  pct,
+  svg,
+  table,
+  trace,
+  wireTableToggles,
+} from "./shared.js";
 
 /* ---- stat tiles --------------------------------------------------------- */
 
@@ -322,66 +291,6 @@ function renderAcceptanceBySkill(m) {
   );
 }
 
-/* ---- coverage grid ------------------------------------------------------ */
-
-function renderCoverage(m) {
-  const rows = m.coverage_gap.rows;
-  trace("coverage-trace", m.coverage_gap.query_file);
-
-  if (!rows.length) {
-    el("coverage").innerHTML = '<p class="small muted">No incidents in window.</p>';
-    return;
-  }
-
-  // Normalise the sparse (grid_x, grid_y) rows onto a dense rectangle.
-  const xs = rows.map((r) => num(r.grid_x));
-  const ys = rows.map((r) => num(r.grid_y));
-  const minX = Math.min(...xs), maxX = Math.max(...xs);
-  const minY = Math.min(...ys), maxY = Math.max(...ys);
-  const cols = Math.min(maxX - minX + 1, 20);
-  const rowsCount = Math.min(maxY - minY + 1, 14);
-
-  const lookup = new Map(rows.map((r) => [`${num(r.grid_x)},${num(r.grid_y)}`, r]));
-  const step = (v) => SEQUENTIAL[Math.min(SEQUENTIAL.length - 1, Math.floor(v * SEQUENTIAL.length))];
-
-  const cells = [];
-  // Rendered top-down, so north is up rather than the raw index order.
-  for (let y = rowsCount - 1; y >= 0; y -= 1) {
-    for (let x = 0; x < cols; x += 1) {
-      const row = lookup.get(`${minX + x},${minY + y}`);
-      if (!row) {
-        cells.push('<div class="heat__cell" style="background:var(--surface-alt)" title="no incidents"></div>');
-      } else {
-        const severity = num(row.gap_severity);
-        cells.push(
-          `<div class="heat__cell" style="background:${step(severity)}"
-                title="${row.incident_count} incidents, ${row.uncovered_count} with no responder in range (${pct(severity)})"></div>`
-        );
-      }
-    }
-  }
-
-  el("coverage").style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-  el("coverage").innerHTML = cells.join("");
-  el("coverage-scale").innerHTML = SEQUENTIAL.map(
-    (c) => `<span style="width:16px;height:10px;border-radius:2px;background:${c}"></span>`
-  ).join("");
-
-  const worst = rows.filter((r) => num(r.incident_count) > 1).slice(0, 5);
-  el("coverage-worst").innerHTML = worst.length
-    ? worst
-        .map(
-          (r) => `<div class="list__row">
-            <span class="small numeric">${Number(r.centre_lat).toFixed(4)}, ${Number(r.centre_lng).toFixed(4)}</span>
-            <span class="spacer"></span>
-            <span class="tiny muted">${r.incident_count} incidents</span>
-            <span class="pill pill--live">${pct(r.gap_severity)} uncovered</span>
-          </div>`
-        )
-        .join("")
-    : '<p class="tiny muted">No bucket has more than one incident yet.</p>';
-}
-
 /* ---- AI degradation ----------------------------------------------------- */
 
 function renderAiStatus(m) {
@@ -403,83 +312,13 @@ function renderAiStatus(m) {
     .join("");
 }
 
-/* ---- tables ------------------------------------------------------------- */
-
-function renderIncidents(incidents) {
-  const statusPill = {
-    matched: "pill--success",
-    pending: "pill--warn",
-    resolved: "pill--info",
-    no_responder_found: "pill--live",
-  };
-
-  el("incidents-table").innerHTML = `
-    <thead><tr><th>#</th><th>Category</th><th>Status</th><th>Radius</th><th>Waves</th><th>AI</th></tr></thead>
-    <tbody>${incidents
-      .slice(0, 12)
-      .map(
-        (i) => `<tr>
-          <td class="strong numeric">${i.id}</td>
-          <td>${(i.ai_category || "unspecified").replace(/_/g, " ")}</td>
-          <td><span class="pill ${statusPill[i.status] ?? ""}">${i.status.replace(/_/g, " ")}</span></td>
-          <td class="numeric">${i.current_radius_m} m</td>
-          <td class="numeric">${i.wave_count}</td>
-          <td class="tiny muted">${i.ai_status}</td>
-        </tr>`
-      )
-      .join("")}</tbody>`;
-}
-
-function renderPending() {
-  // Certificate upload and approval are Future Scope: the flow needs a
-  // certificate_path column that does not exist, so there is nothing to
-  // approve. The buttons are rendered DISABLED rather than omitted or left
-  // looking live -- a control that does nothing when clicked reads as broken,
-  // and a control that isn't there hides the shape of the intended feature.
-  el("pending-table").innerHTML = `
-    <thead><tr><th>Name</th><th>Skill</th><th>Certificate</th><th>Waiting</th><th></th></tr></thead>
-    <tbody>${mockAdmin.pendingVolunteers
-      .map(
-        (v) => `<tr>
-          <td class="strong">${v.name}</td>
-          <td><span class="chip chip--info">${v.skill.replace("_", " ")}</span></td>
-          <td class="muted">${v.certificate}</td>
-          <td class="muted">${v.when}</td>
-          <td>
-            <button class="btn btn--success" style="padding:4px 10px" disabled
-                    title="Certificate upload and approval are Future Scope — see README">
-              Approve
-            </button>
-          </td>
-        </tr>`
-      )
-      .join("")}</tbody>`;
-}
-
 /* ---- boot --------------------------------------------------------------- */
 
 async function boot() {
-  const user = requireAuth("admin");
-  if (!user) return;
+  if (!bootAdmin()) return;
 
-  el("user-name").textContent = user.name;
-  el("user-initials").textContent = initials(user.name);
-  initNav();
-
-  let payload;
-  try {
-    payload = await api.analytics();
-  } catch (error) {
-    el("banner").className = "toast toast--error";
-    el("banner").textContent = `Analytics unavailable: ${error.detail || error.message}`;
-    return;
-  }
-
-  const m = payload.metrics;
-  el("banner").innerHTML =
-    `<strong>Live data.</strong> ${payload.window_days}-day window. Every figure below is ` +
-    `produced by a named query in <code>analytics/queries/</code> — the filename is printed ` +
-    `under each panel, so any number here can be checked against the SQL that made it.`;
+  const m = await loadAnalytics();
+  if (!m) return;
 
   renderStats(m);
   renderAcceptance(m);
@@ -487,29 +326,9 @@ async function boot() {
   renderTypes(m);
   renderEscalation(m);
   renderAcceptanceBySkill(m);
-  renderCoverage(m);
   renderAiStatus(m);
-  renderPending();
 
-  try {
-    renderIncidents(await api.adminIncidents());
-  } catch {
-    el("incidents-table").innerHTML = '<tbody><tr><td class="muted">Unavailable</td></tr></tbody>';
-  }
-
-  for (const button of document.querySelectorAll(".toggle-table")) {
-    button.addEventListener("click", () => {
-      const target = el(button.dataset.table);
-      target.hidden = !target.hidden;
-      button.textContent = target.hidden ? "Table" : "Chart only";
-    });
-  }
-
-  el("logout").addEventListener("click", (event) => {
-    event.preventDefault();
-    auth.clear();
-    location.href = "/app/login.html";
-  });
+  wireTableToggles();
 }
 
 boot();

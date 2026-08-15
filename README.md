@@ -45,7 +45,10 @@ With the server running, open **http://127.0.0.1:8000/app/**.
 | Citizen | `/app/citizen/` | **live** — SOS, escalation, terminal states |
 | Volunteer | `/app/volunteer/` | **live** — WebSocket alerts, accept-lock |
 | Volunteer alert | `/app/volunteer/alert.html` | live, with preview states |
-| Admin | `/app/admin/` | **live** — all seven metrics from `analytics/queries/` |
+| Admin — dashboard | `/app/admin/` | **live** — the Ch. 18A metrics from `analytics/queries/` |
+| Admin — incidents | `/app/admin/incidents.html` | **live** — recent incidents, a snapshot per load |
+| Admin — volunteers | `/app/admin/volunteers.html` | sample data, controls disabled — Future Scope |
+| Admin — coverage | `/app/admin/coverage.html` | **live** — the coverage gap grid |
 
 Hard-to-summon states can be previewed without staging an incident:
 `/app/citizen/?state=expanding`, `?state=none`, and

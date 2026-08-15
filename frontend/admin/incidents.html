@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Incidents — FLARE Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/app/shared/tokens.css">
+<link rel="stylesheet" href="/app/shared/base.css">
+<link rel="stylesheet" href="/app/shared/components.css">
+<link rel="stylesheet" href="/app/admin/admin.css">
+</head>
+<body>
+
+<div class="app">
+  <nav class="sidebar app__sidebar" aria-label="Admin navigation">
+    <a class="brand brand--light sidebar__brand" href="/app/"><span class="brand__mark">🔥</span> FLARE</a>
+    <a class="sidebar__link" href="/app/admin/"><span class="sidebar__icon">📊</span><span class="sidebar__label">Dashboard</span></a>
+    <a class="sidebar__link" href="/app/admin/incidents.html" aria-current="page"><span class="sidebar__icon">🚨</span><span class="sidebar__label">Incidents</span></a>
+    <a class="sidebar__link" href="/app/admin/volunteers.html"><span class="sidebar__icon">👥</span><span class="sidebar__label">Volunteers</span></a>
+    <a class="sidebar__link" href="/app/admin/coverage.html"><span class="sidebar__icon">📈</span><span class="sidebar__label">Coverage</span></a>
+    <div class="sidebar__spacer"></div>
+    <a class="sidebar__link" href="#" id="logout"><span class="sidebar__icon">⏻</span><span class="sidebar__label">Logout</span></a>
+  </nav>
+
+  <header class="topbar">
+    <h1 style="font-size:var(--text-lg)">Incidents</h1>
+    <div class="spacer"></div>
+    <div class="responder">
+      <div class="avatar avatar--sm" id="user-initials">A</div>
+      <div class="tiny" style="line-height:1.2">
+        <div class="strong" id="user-name">—</div>
+        <div class="muted">Administrator</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="app__main stack stack--loose">
+
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <h3 class="card__title">Recent Incidents</h3>
+          <p class="tiny muted">Newest first. Radius and wave count show how far the escalation ladder ran.</p>
+        </div>
+        <span class="pill pill--muted" id="incident-count">—</span>
+      </div>
+      <div class="scroll-x"><table class="table" id="incidents-table"></table></div>
+      <code class="trace">GET /admin/incidents</code>
+    </div>
+
+    <p class="tiny muted">
+      This table is a snapshot taken when the page loaded — reload to refresh it.
+      There is no admin WebSocket channel, so it does not update live.
+    </p>
+
+  </main>
+</div>
+
+<script type="module" src="/app/admin/incidents.js"></script>
+</body>
+</html>
