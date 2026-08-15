@@ -107,10 +107,6 @@ export function requireAuth(role) {
   return user;
 }
 
-export function initials(name) {
-  return (name || "?")
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}
+/* `initials` moved to shared/format.js. Turning a display name into two
+ * letters is not an API-client concern, and having it here meant every page
+ * that wanted an avatar imported the network layer to get it. */
