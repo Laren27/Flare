@@ -63,6 +63,35 @@ class SOSCreateRequest(BaseModel):
     description: str | None = Field(default=None, max_length=2000)
 
 
+class AvailabilityRequest(BaseModel):
+    """Going online carries a position (ADR-026).
+
+    `lat`/`lng` are optional on the model rather than required, because going
+    *offline* legitimately has no position to send. The service enforces the
+    other half: `available=True` without coordinates is refused, so the record
+    cannot say a volunteer is online while the engine has no way to reach them.
+    """
+
+    available: bool
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lng: float | None = Field(default=None, ge=-180, le=180)
+
+
+class VolunteerOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    user_id: int
+    verified: bool
+    skills: SkillClass
+    availability: bool
+    # Null until the volunteer has been online at least once. Surfacing it lets
+    # the client say "online, and the engine knows where you are" rather than
+    # asserting the first half and hoping for the second.
+    lat: float | None
+    lng: float | None
+    location_updated_at: datetime | None
+
+
 class CandidateOut(BaseModel):
     """Deliberately free of personal data. The citizen has no need for a
     responder's name or number before anyone has accepted (Ch. 22), and week 5's
