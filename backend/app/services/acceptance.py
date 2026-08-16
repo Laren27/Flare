@@ -19,6 +19,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import SOS, Notification, NotificationStatus, SOSStatus
+from app.services import updates
 
 
 class AcceptOutcome(enum.StrEnum):
@@ -65,6 +66,16 @@ async def accept(session: AsyncSession, *, sos_id: int, responder_id: int) -> Ac
                                  status=NotificationStatus.ACCEPTED)
         await session.commit()
         sos = await session.get(SOS, sos_id)
+
+        # Pushed after the commit, never before: a frame announcing an
+        # acceptance that then failed to persist would be a lie the clients
+        # could not take back (ADR-027).
+        assert sos is not None
+        await updates.notify_victim(sos, event=updates.MATCHED)
+        await updates.close_open_alerts(
+            session, sos, reason="accepted", exclude=responder_id
+        )
+
         return AcceptResult(outcome=AcceptOutcome.WON, sos=sos)
 
     # Lost, or never existed. Reading now is safe: the answer no longer gates a
@@ -114,6 +125,20 @@ async def cancel(session: AsyncSession, *, sos_id: int) -> SOS | None:
     sos.status = SOSStatus.CANCELLED
     sos.resolved_at = datetime.now(UTC)
 
+    # Captured before the dismissal below, not after: once those rows stop being
+    # `sent` there is no record left of who was still waiting, and the push
+    # would go to nobody (ADR-027).
+    open_alert_ids = list(
+        (
+            await session.execute(
+                select(Notification.volunteer_id).where(
+                    Notification.sos_id == sos_id,
+                    Notification.status == NotificationStatus.SENT,
+                )
+            )
+        ).scalars()
+    )
+
     # Any responder still holding an open alert is told it is over by the same
     # mechanism that tells them somebody else won: their notification stops
     # being `sent`. Without this the alert would sit open for an incident that
@@ -128,6 +153,10 @@ async def cancel(session: AsyncSession, *, sos_id: int) -> SOS | None:
     )
 
     await session.commit()
+
+    await updates.notify_victim(sos, event=updates.CANCELLED)
+    await updates.close_alerts_for(open_alert_ids, sos_id=sos.id, reason="cancelled")
+
     return sos
 
 
@@ -169,6 +198,12 @@ async def resolve(session: AsyncSession, *, sos_id: int) -> SOS | None:
         existing.resolved_at = now
 
     await session.commit()
+
+    # No alert_closed here: an incident only reaches `resolved` from `matched`,
+    # and every other open alert was dismissed when the accept-lock closed. The
+    # victim is the only party with anything left to learn.
+    await updates.notify_victim(sos, event=updates.RESOLVED)
+
     return sos
 
 
