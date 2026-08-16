@@ -26,6 +26,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.models import SOS, EscalationTrigger, IncidentHistory, SOSStatus
+from app.services import updates
 from app.services.websocket_manager import ConnectionRegistry
 
 logger = logging.getLogger(__name__)
@@ -104,7 +105,7 @@ async def escalate_once(
     upgraded = next_radius(sos.current_radius_m, ladder)
 
     if upgraded is None:
-        await _mark_exhausted(session, sos, initial_trigger or trigger)
+        await _mark_exhausted(session, sos, initial_trigger or trigger, registry=registry)
         return EscalationOutcome(
             wave_number=sos.wave_count,
             radius_m=sos.current_radius_m,
@@ -115,6 +116,10 @@ async def escalate_once(
 
     sos.current_radius_m = upgraded
     result = await dispatch.dispatch_wave(session, sos, registry=registry)
+
+    # After dispatch_wave commits, so the snapshot the citizen receives matches
+    # what a reconciliation fetch would return (ADR-027).
+    await updates.notify_victim(sos, event=updates.ESCALATED, registry=registry)
 
     logger.info(
         "sos %s escalated to %sm on %s, %s newly alerted",
@@ -130,7 +135,11 @@ async def escalate_once(
 
 
 async def _mark_exhausted(
-    session: AsyncSession, sos: SOS, trigger: EscalationTrigger
+    session: AsyncSession,
+    sos: SOS,
+    trigger: EscalationTrigger,
+    *,
+    registry: ConnectionRegistry | None = None,
 ) -> None:
     """Ladder exhausted: an explicit terminal state, never a silent give-up.
 
@@ -159,6 +168,17 @@ async def _mark_exhausted(
 
     await session.commit()
     logger.info("sos %s reached no_responder_found at %sm", sos.id, sos.current_radius_m)
+
+    await updates.notify_victim(sos, event=updates.NO_RESPONDER, registry=registry)
+
+    # Responders who were alerted and never answered are told the incident is
+    # over, but their notifications are deliberately left `sent`. That status is
+    # what acceptance_rate.sql counts as ignored, and rewriting it to dismissed
+    # here would erase the very signal the ladder ran out proving -- these
+    # people were reachable and did not respond.
+    await updates.close_open_alerts(
+        session, sos, reason="no_responder_found", registry=registry
+    )
 
 
 async def run_escalation(
