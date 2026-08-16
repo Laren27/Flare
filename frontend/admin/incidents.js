@@ -38,7 +38,9 @@ function renderIncidents(incidents) {
     <tbody>${incidents
       .map(
         (i) => `<tr>
-          <td class="strong numeric">${i.id}</td>
+          <td class="strong numeric">
+            <a href="/app/admin/incident.html?id=${i.id}" title="Every dispatch decision for this incident">${i.id}</a>
+          </td>
           <td>${(i.ai_category || "unspecified").replace(/_/g, " ")}</td>
           <td><span class="pill ${STATUS_PILL[i.status] ?? ""}">${i.status.replace(/_/g, " ")}</span></td>
           <td class="numeric">${i.current_radius_m} m</td>
