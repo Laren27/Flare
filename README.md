@@ -18,8 +18,9 @@ grid on its own page.
 
 **Not built, and not claimed anywhere in the product:** certificate upload and
 admin approval (the queue is shown with its controls disabled and labelled),
-responder live location after acceptance, and Web Push. All are in Future Scope
-(Ch. 26).
+responder live location after acceptance, editing a declared skill, turn-by-turn
+navigation, and Web Push. All are in Future Scope (Ch. 26), and each is labelled
+on the screen where it would otherwise be assumed to work.
 
 ## Analytics (Ch. 18A)
 
@@ -45,7 +46,7 @@ With the server running, open **http://127.0.0.1:8000/app/**.
 | Sign in / register | `/app/login.html` | live |
 | Citizen | `/app/citizen/` | **live** — SOS, escalation, terminal states |
 | Volunteer | `/app/volunteer/` | **live** — WebSocket alerts, accept-lock |
-| Volunteer alert | `/app/volunteer/alert.html` | live, with preview states |
+| Volunteer assignment | `/app/volunteer/assignment.html?sos=N` | **live** — after winning an incident |
 | Admin — dashboard | `/app/admin/` | **live** — six Ch. 18A metrics from `analytics/queries/` |
 | Admin — incidents | `/app/admin/incidents.html` | **live** — recent incidents, a snapshot per load |
 | Admin — volunteers | `/app/admin/volunteers.html` | sample data, controls disabled — Future Scope |
@@ -53,7 +54,7 @@ With the server running, open **http://127.0.0.1:8000/app/**.
 
 Hard-to-summon states can be previewed without staging an incident:
 `/app/citizen/?state=expanding`, `?state=none`, and
-`/app/volunteer/alert.html?view=handled`.
+`/app/volunteer/?preview=incoming`, `?preview=handled`.
 
 The blueprint is the authoritative spec. Architectural decisions, including the
 decisions *not* to build things, live in its Chapter 4 (ADR).
@@ -124,7 +125,10 @@ later on the first query.
 | `GET` | `/sos/{id}` | status; victim, assigned responder, or admin only |
 | `POST` | `/sos/{id}/accept` | conditional UPDATE; exactly one responder wins (ADR-011) |
 | `POST` | `/sos/{id}/decline` | records one responder's answer, not the incident's |
+| `POST` | `/sos/{id}/cancel` | citizen withdraws; a distinct state, not a resolution (ADR-025) |
 | `POST` | `/sos/{id}/resolve` | closes a matched incident and writes Incident History |
+| `GET` | `/volunteers/me` | own record, including where the engine last had you |
+| `PATCH` | `/volunteers/availability` | go on or off duty; going online carries a position (ADR-026) |
 | `GET` | `/admin/analytics` | all seven Ch. 18A metrics, each labelled with its query file |
 | `GET` | `/admin/incidents` | recent incidents for the admin table |
 | `GET` | `/admin/queries` | the traceability index of query files |
