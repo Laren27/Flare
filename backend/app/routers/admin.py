@@ -4,9 +4,11 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Query, status
 
+from fastapi import HTTPException
+
 from app.dependencies import DbSession, require_role
 from app.models import SOS, UserRole
-from app.services import analytics
+from app.services import analytics, incidents as incident_service
 
 router = APIRouter(
     prefix="/admin",
@@ -66,6 +68,23 @@ async def list_incidents(
         }
         for sos in rows.scalars()
     ]
+
+
+@router.get("/incidents/{sos_id}")
+async def get_incident(sos_id: int, session: DbSession) -> dict[str, Any]:
+    """One incident and every dispatch decision made about it (ADR-014).
+
+    This is the endpoint behind the answer to "why wasn't responder X alerted?".
+    Every candidate the engine evaluated appears, selected or rejected, with the
+    reason — invariant 4 says nothing is filtered silently, and this is where
+    that promise becomes visible rather than merely kept.
+    """
+    detail = await incident_service.get_detail(session, sos_id=sos_id)
+    if detail is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No such incident"
+        )
+    return detail
 
 
 @router.get("/queries", status_code=status.HTTP_200_OK)
