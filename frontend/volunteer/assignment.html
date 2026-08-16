@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your assignment — FLARE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="/app/shared/tokens.css">
+<link rel="stylesheet" href="/app/shared/base.css">
+<link rel="stylesheet" href="/app/shared/components.css">
+</head>
+<body>
+
+<div class="app">
+  <nav class="sidebar app__sidebar" aria-label="Responder navigation">
+    <a class="brand brand--light sidebar__brand" href="/app/"><span class="brand__mark">🔥</span> FLARE</a>
+    <a class="sidebar__link" href="/app/volunteer/"><span class="sidebar__icon">🏠</span><span class="sidebar__label">Home</span></a>
+    <a class="sidebar__link" href="#" aria-current="page"><span class="sidebar__icon">🚑</span><span class="sidebar__label">Assignment</span></a>
+    <a class="sidebar__link sidebar__link--soon" href="#profile"><span class="sidebar__icon">👤</span><span class="sidebar__label">My Profile</span><span class="sidebar__soon">soon</span></a>
+    <div class="sidebar__spacer"></div>
+    <a class="sidebar__link" href="#" id="logout"><span class="sidebar__icon">⏻</span><span class="sidebar__label">Logout</span></a>
+  </nav>
+
+  <header class="topbar">
+    <h1 class="topbar__title">Your assignment</h1>
+    <span class="pill pill--live" id="live-pill">ACTIVE</span>
+    <div class="spacer"></div>
+    <div class="avatar avatar--sm" id="user-initials">?</div>
+  </header>
+
+  <main class="app__main">
+
+    <div id="assignment-error" class="toast toast--error" hidden></div>
+
+    <section id="assignment" class="grid grid--sos" hidden>
+      <div class="stack">
+        <div class="card stack">
+          <div>
+            <div class="stat__label">Status</div>
+            <div class="row row--tight mt-1">
+              <span class="pill pill--success" id="status-pill">Assigned to you</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="stat__label">Reported</div>
+            <div class="strong" id="category">—</div>
+            <p class="small muted mt-1" id="description">—</p>
+          </div>
+
+          <div>
+            <div class="stat__label">Location</div>
+            <div class="strong small numeric" id="coords">—</div>
+          </div>
+
+          <!-- Hands off to whatever map app the device has. This is not
+               in-app navigation and does not claim to be: FLARE computes no
+               route, and full routing is Future Scope (Ch. 26). -->
+          <a class="btn btn--info btn--block" id="open-maps" href="#" target="_blank" rel="noopener">
+            Open in maps
+          </a>
+
+          <button class="btn btn--success btn--block" id="resolve-button">
+            Mark this incident resolved
+          </button>
+          <p class="tiny muted center">
+            Only once help has been given or professional responders have taken over.
+          </p>
+
+          <p class="notice">
+            <span class="notice__label">Not built</span> — turn-by-turn navigation and
+            sharing your position with the citizen. They can see that a responder has
+            been assigned, but not where you are.
+          </p>
+        </div>
+      </div>
+
+      <div class="card card--flush">
+        <div class="map map--tall" id="map"></div>
+      </div>
+    </section>
+
+    <section id="closed" hidden>
+      <div class="card">
+        <div class="terminal">
+          <div class="terminal__icon terminal__icon--ok" id="closed-icon">✓</div>
+          <h2 class="terminal__title" id="closed-title">Incident closed</h2>
+          <p class="terminal__body" id="closed-body">This incident is no longer active.</p>
+          <a class="btn btn--ghost" href="/app/volunteer/">Back to dashboard</a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module" src="/app/volunteer/assignment.js"></script>
+</body>
+</html>
