@@ -44,6 +44,17 @@ class FakeSocket:
         pass
 
 
+def alerts(socket: FakeSocket) -> list[dict]:
+    """Only the dispatch alerts this socket received.
+
+    The socket now carries incident updates too (ADR-027) -- `alert_closed` when
+    the ladder runs out, for one. Counting every frame would make these
+    assertions fail for a reason unrelated to what they test, and worse, would
+    let them pass in future for the same kind of reason.
+    """
+    return [frame for frame in socket.sent if frame.get("type") == "sos_alert"]
+
+
 async def connected_registry(*user_ids: int) -> tuple[ConnectionRegistry, dict[int, FakeSocket]]:
     registry = ConnectionRegistry()
     sockets = {uid: FakeSocket() for uid in user_ids}
@@ -92,7 +103,7 @@ class TestConditionA:
 
         assert elapsed < 5.0, "condition A waited for the acceptance timeout"
         assert stored.current_radius_m == 3000, "should have walked past 2km to reach the responder"
-        assert len(sockets[far_id].sent) == 1
+        assert len(alerts(sockets[far_id])) == 1
 
     async def test_walks_the_whole_ladder_to_no_responder_found(self, session_factory):
         async with session_factory() as s:
@@ -168,8 +179,8 @@ class TestConditionB:
             sos = await s.get(SOS, sos_id)
             await dispatch.dispatch_wave(s, sos, registry=registry)
 
-        assert len(sockets[near_id].sent) == 1
-        assert len(sockets[middle_id].sent) == 0
+        assert len(alerts(sockets[near_id])) == 1
+        assert len(alerts(sockets[middle_id])) == 0
 
         task = await run_machine(session_factory, sos_id, registry, empty_first_wave=False,
                                  timeout=FAST_TIMEOUT)
@@ -177,8 +188,8 @@ class TestConditionB:
         task.cancel()
         await asyncio.gather(task, return_exceptions=True)
 
-        assert len(sockets[middle_id].sent) == 1, "newly included responder was not alerted"
-        assert len(sockets[near_id].sent) == 1, "already-alerted responder was alerted twice"
+        assert len(alerts(sockets[middle_id])) == 1, "newly included responder was not alerted"
+        assert len(alerts(sockets[near_id])) == 1, "already-alerted responder was alerted twice"
 
         async with session_factory() as s:
             already = await s.scalar(
