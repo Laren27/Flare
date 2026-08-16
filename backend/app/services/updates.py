@@ -80,6 +80,36 @@ async def notify_victim(
     return delivered
 
 
+async def close_alerts_for(
+    volunteer_ids: list[int],
+    *,
+    sos_id: int,
+    reason: str,
+    registry: ConnectionRegistry | None = None,
+) -> int:
+    """Push `alert_closed` to an explicit list of responders.
+
+    Exists because cancellation dismisses the open notifications as part of the
+    same transaction that ends the incident, so by the time the push happens
+    there is no longer a record of who was waiting. The recipients are captured
+    before that update and handed here.
+    """
+    registry = registry if registry is not None else default_registry
+    payload = {"type": ALERT_CLOSED, "sos_id": sos_id, "reason": reason}
+
+    delivered = 0
+    for volunteer_id in volunteer_ids:
+        if await registry.send(volunteer_id, payload):
+            delivered += 1
+
+    if volunteer_ids:
+        logger.info(
+            "sos %s closed (%s): told %s of %s open alerts",
+            sos_id, reason, delivered, len(volunteer_ids),
+        )
+    return delivered
+
+
 async def close_open_alerts(
     session: AsyncSession,
     sos: SOS,
