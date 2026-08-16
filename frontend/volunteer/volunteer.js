@@ -151,6 +151,39 @@ function showAlertView(name) {
   el("alert-overlay").hidden = false;
 }
 
+/* Why this alert stopped being answerable. Only the first of these is the
+ * accept-lock; showing its explanation for the other two would credit a
+ * mechanism that had nothing to do with it. */
+const CLOSED_COPY = {
+  accepted: {
+    icon: "✓",
+    title: "Already handled",
+    body: "Another responder accepted this incident before you. No further action is needed — help is on the way.",
+    note: "Only the first acceptance is assigned. The lock is enforced by the database, so exactly one responder is ever dispatched to an incident.",
+  },
+  cancelled: {
+    icon: "✕",
+    title: "Request withdrawn",
+    body: "The person who raised this cancelled it. Nobody needs to attend.",
+    note: "Cancelling is recorded as its own outcome, not as a resolution — it does not count as help having arrived.",
+  },
+  no_responder_found: {
+    icon: "📞",
+    title: "Search ended",
+    body: "Nobody accepted within 3 km, so this incident was escalated to emergency services.",
+    note: "Your alert stayed open the whole time. The search widening does not withdraw it — it adds responders.",
+  },
+};
+
+function showAlertClosed(reason) {
+  const copy = CLOSED_COPY[reason] ?? CLOSED_COPY.accepted;
+  el("closed-icon").textContent = copy.icon;
+  el("closed-title").textContent = copy.title;
+  el("closed-body").textContent = copy.body;
+  el("closed-note").textContent = copy.note;
+  showAlertView("handled");
+}
+
 function closeAlert() {
   el("alert-overlay").hidden = true;
   if (elapsedTimer) clearInterval(elapsedTimer);
@@ -215,7 +248,7 @@ async function acceptCurrent() {
       // The accept-lock refused a second claim. Its own screen, not a toast
       // that fades: being second is the expected outcome for every responder
       // but one, and it deserves the explanation.
-      showAlertView("handled");
+      showAlertClosed("accepted");
     }
   } catch (error) {
     alertMessage(error.detail || error.message, "error");
@@ -266,7 +299,7 @@ async function boot() {
     location.search = event.target.value ? `?preview=${event.target.value}` : "";
   });
   if (preview === "incoming") openAlert(mockAlert);
-  if (preview === "handled") showAlertView("handled");
+  if (preview === "handled") showAlertClosed("accepted");
   el("logout").addEventListener("click", (event) => {
     event.preventDefault();
     auth.clear();
@@ -278,6 +311,14 @@ async function boot() {
   channel.addEventListener("offline", () => { el("conn-pill").textContent = "reconnecting…"; });
   channel.addEventListener("unauthorized", () => { location.href = "/app/login.html"; });
   channel.addEventListener("sos_alert", (event) => openAlert(event.detail));
+
+  // The incident stopped being available while this alert was open (ADR-027).
+  // Until this existed a responder found out by pressing ACCEPT and losing --
+  // the modal simply sat there, offering a choice that no longer existed.
+  channel.addEventListener("alert_closed", (event) => {
+    if (!currentAlert || event.detail.sos_id !== currentAlert.sos_id) return;
+    showAlertClosed(event.detail.reason);
+  });
   channel.connect();
 }
 
