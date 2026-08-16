@@ -164,13 +164,13 @@
     <div id="alert-handled" hidden>
       <div class="alert-card__body">
         <div class="terminal">
-          <div class="terminal__icon terminal__icon--ok">✓</div>
-          <h2 class="terminal__title">Already handled</h2>
-          <p class="terminal__body">
+          <div class="terminal__icon terminal__icon--ok" id="closed-icon">✓</div>
+          <h2 class="terminal__title" id="closed-title">Already handled</h2>
+          <p class="terminal__body" id="closed-body">
             Another responder accepted this incident before you. No further action is
             needed — help is on the way.
           </p>
-          <p class="tiny muted">
+          <p class="tiny muted" id="closed-note">
             Only the first acceptance is assigned. The lock is enforced by the database,
             so exactly one responder is ever dispatched to an incident.
           </p>
