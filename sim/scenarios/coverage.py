@@ -7,10 +7,24 @@ have distributions to report rather than single values.
 Writes straight to the database rather than driving the API, deliberately. The
 API path would need hundreds of live WebSocket responders and real 30-second
 escalation timeouts -- hours of wall time to produce data whose shape we are
-choosing anyway. What matters is that the ROWS are shaped exactly as the engine
-would have written them: same statuses, same DispatchEvents per candidate, same
-rejection reasons, same funnel timestamps. The queries cannot tell the
-difference, because there is none to tell.
+choosing anyway. What matters is that the ROWS are shaped as the engine would
+have written them: same statuses, one DispatchEvents row per candidate *per
+wave*, same rejection reasons including `already_alerted` for responders still
+holding an open alert, and funnel timestamps that follow ADR-012's expansion
+timing.
+
+That per-wave claim was not true until it was checked. The generator used to
+write a single evaluation set stamped with the final wave number and radius, so
+a three-wave incident left one set behind at 3km instead of three sets at 1km,
+2km and 3km. The queries could tell the difference: acceptance rate by radius
+band attributed every alert to the outermost ring, and the admin incident page
+showed one wave for an incident whose own row said three.
+
+What is still not simulated, and should not be read out of this corpus: delivery
+failure. No row is ever recorded `no_socket`, because there are no sockets here
+-- every selected candidate is treated as reachable. The funnel's Candidates
+found and Alerted stages are therefore equal in seeded data and diverge only
+under live dispatch.
 
 A share of incidents is withdrawn by the citizen (ADR-025), split between those
 cancelled while still searching and those cancelled after a responder had
@@ -44,6 +58,12 @@ from app.config import get_settings  # noqa: E402
 CENTRE_LAT, CENTRE_LNG = 12.9716, 77.5946
 EARTH_RADIUS_M = 6_371_008.8
 LADDER = (1000, 2000, 3000)
+
+# The production default of ADR-012, not whatever the local .env is set to. A
+# corpus is a record of how the system behaves, and demo runs shorten this to
+# watch the ladder walk without waiting -- baking that in would make the seeded
+# escalation timings a record of the presentation rather than of the engine.
+ACCEPT_TIMEOUT_SECONDS = 30
 
 # Categories the AI service can return, with plausible frequencies. Cardiac
 # arrest dominates because that is the emergency Chapter 1 is written about.
@@ -86,6 +106,37 @@ def in_dead_zone(lat, lng):
         if math.hypot(dx, dy) < radius:
             return True
     return False
+
+
+def wave_schedule(evaluations, dead, n_waves, start):
+    """When each wave went out, following ADR-012's two conditions.
+
+    A wave that alerted nobody expands immediately -- the emptiness is already
+    measured, and waiting the timeout to reconfirm it burns real seconds of an
+    emergency. A wave that did alert somebody waits for them.
+
+    Deliberately free of randomness so it can be called more than once for the
+    same incident without consuming the generator's rng and drifting: the
+    acceptance clamp below and the event replay must agree on these timestamps
+    exactly, or an incident's own detail page contradicts itself.
+    """
+    times = []
+    alerted: set[int] = set()
+    at = start
+
+    for wave_number in range(1, n_waves + 1):
+        radius = LADDER[wave_number - 1]
+        times.append(at)
+        newly = [
+            e[0]
+            for e in evaluations
+            if e[2] is None and e[1] is not None and not dead
+            and e[1] <= radius and e[0] not in alerted
+        ]
+        alerted.update(newly)
+        at += timedelta(seconds=ACCEPT_TIMEOUT_SECONDS if newly else 0.15)
+
+    return times
 
 
 def pick_category(rng):
@@ -199,6 +250,18 @@ def main() -> None:
                 if e[2] is None and e[1] is not None and e[1] <= radius and not dead
             ]
 
+            first_dispatch = created_at + timedelta(milliseconds=rng.uniform(40, 260))
+
+            # An incident that reached wave N was not accepted during waves 1..N-1:
+            # acceptance cancels the escalation task (ADR-012), so the ladder
+            # would have stopped there. Acceptance therefore cannot predate the
+            # last wave that actually went out, and this is the moment it did.
+            def not_before_last_wave(when, waves):
+                if waves <= 1:
+                    return when
+                floor = wave_schedule(evaluations, dead, waves, first_dispatch)[-1]
+                return max(when, floor + timedelta(seconds=rng.uniform(2, 45)))
+
             # Outcome. Responders ignore alerts sometimes -- assuming otherwise
             # is the most unrealistic thing a dispatch model can do (ADR-012).
             cancelled = False
@@ -226,8 +289,11 @@ def main() -> None:
                     cancelled_after_match += 1
                     winner = min(reachable, key=lambda e: e[1])
                     accepted_by = winner[0]
-                    matched_at = created_at + timedelta(
-                        seconds=min(rng.lognormvariate(4.6, 0.65), 700)
+                    matched_at = not_before_last_wave(
+                        created_at + timedelta(
+                            seconds=min(rng.lognormvariate(4.6, 0.65), 700)
+                        ),
+                        wave,
                     )
                     withdrawn_at = matched_at + timedelta(seconds=rng.uniform(60, 600))
                 else:
@@ -241,7 +307,9 @@ def main() -> None:
                 winner = min(reachable, key=lambda e: e[1])
                 accepted_by = winner[0]
                 delay = rng.lognormvariate(4.6, 0.65)  # seconds, right-skewed
-                matched_at = created_at + timedelta(seconds=min(delay, 700))
+                matched_at = not_before_last_wave(
+                    created_at + timedelta(seconds=min(delay, 700)), wave
+                )
                 if rng.random() < 0.94:
                     status, resolved = "resolved", resolved + 1
                 else:
@@ -259,7 +327,6 @@ def main() -> None:
                 status, unmatched = "no_responder_found", unmatched + 1
                 accepted_by = matched_at = None
 
-            first_dispatch = created_at + timedelta(milliseconds=rng.uniform(40, 260))
             if cancelled:
                 # cancel() stamps resolved_at on withdrawal too -- the column is
                 # "when this incident stopped being live", not "when help
@@ -292,29 +359,48 @@ def main() -> None:
             }).scalar()
             created += 1
 
-            # One DispatchEvents row per candidate evaluated -- invariant 4 holds
-            # for generated data too, or the queries would read a different
-            # world from the one the engine writes.
-            for user_id, d, reason, _skill in evaluations:
-                if reason is None and d is not None and d <= radius and not dead:
-                    outcome, final_reason = "alerted", None
-                elif reason is None:
-                    outcome, final_reason = "rejected", "out_of_radius"
-                else:
-                    outcome, final_reason = "rejected", reason
-                c.execute(text("""
-                    INSERT INTO dispatch_events (sos_id, volunteer_id, wave_number,
-                        evaluated_at, radius_m_at_eval, distance_m, skill_match,
-                        outcome, rejection_reason)
-                    VALUES (:s, :v, :w, :at, :rad, :d, :sm, :o, :r)
-                """), {
-                    "s": sos_id, "v": user_id, "w": wave, "at": first_dispatch,
-                    "rad": radius, "d": d, "sm": _skill in ("cpr", "first_aid"),
-                    "o": outcome, "r": final_reason,
-                })
+            # Replay every wave the ladder actually walked, not just the last
+            # one. `dispatch_wave` is called once per rung and evaluates the
+            # whole volunteer table at that rung's radius, so a three-wave
+            # incident leaves three full evaluation sets behind -- at 1km, 2km
+            # and 3km. Writing a single set stamped with the final radius made
+            # the admin detail page show one wave for an incident whose own row
+            # said three, and attributed every alert to the final radius band,
+            # which skewed acceptance-rate-by-band toward the outer rings.
+            alerted_so_far: set[int] = set()
+            schedule = wave_schedule(evaluations, dead, wave, first_dispatch)
 
-            for user_id, d, reason, _skill in evaluations:
-                if reason is None and d is not None and d <= radius and not dead:
+            for wave_number in range(1, wave + 1):
+                wave_radius = LADDER[wave_number - 1]
+                wave_at = schedule[wave_number - 1]
+                newly_alerted = []
+
+                for user_id, d, reason, _skill in evaluations:
+                    if reason is not None:
+                        # Eligibility before geography (ADR-021).
+                        outcome, final_reason = "rejected", reason
+                    elif dead or d is None or d > wave_radius:
+                        outcome, final_reason = "rejected", "out_of_radius"
+                    elif user_id in alerted_so_far:
+                        # Their alert from an earlier wave is still open, so the
+                        # engine does not send a second one -- it records why.
+                        outcome, final_reason = "rejected", "already_alerted"
+                    else:
+                        outcome, final_reason = "alerted", None
+                        newly_alerted.append((user_id, d))
+
+                    c.execute(text("""
+                        INSERT INTO dispatch_events (sos_id, volunteer_id, wave_number,
+                            evaluated_at, radius_m_at_eval, distance_m, skill_match,
+                            outcome, rejection_reason)
+                        VALUES (:s, :v, :w, :at, :rad, :d, :sm, :o, :r)
+                    """), {
+                        "s": sos_id, "v": user_id, "w": wave_number, "at": wave_at,
+                        "rad": wave_radius, "d": d, "sm": _skill in ("cpr", "first_aid"),
+                        "o": outcome, "r": final_reason,
+                    })
+
+                for user_id, _d in newly_alerted:
                     if user_id == accepted_by:
                         n_status, responded = "accepted", matched_at
                     elif accepted_by is not None:
@@ -334,8 +420,10 @@ def main() -> None:
                         INSERT INTO notifications (sos_id, volunteer_id, wave_number,
                                                    status, sent_at, responded_at)
                         VALUES (:s, :v, :w, :st, :sent, :resp)
-                    """), {"s": sos_id, "v": user_id, "w": wave, "st": n_status,
-                           "sent": first_dispatch, "resp": responded})
+                    """), {"s": sos_id, "v": user_id, "w": wave_number, "st": n_status,
+                           "sent": wave_at, "resp": responded})
+
+                alerted_so_far.update(user_id for user_id, _d in newly_alerted)
 
             # Cancelled incidents are absent from this table on purpose
             # (ADR-025): Incident History records how the system concluded an
