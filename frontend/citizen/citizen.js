@@ -1,9 +1,10 @@
 /* Citizen view -- screens 2, 6, 7 and 8 as states of one page.
  *
- * Live against the dispatch engine: POST /sos really dispatches, and the
- * status the page renders is polled from GET /sos/{id}. The escalation states
- * are real -- they appear because the ADR-012 state machine actually widened
- * the radius, not because a timer here pretended it did.
+ * Live against the dispatch engine: POST /sos really dispatches, and what this
+ * page renders arrives over the socket as it happens (ADR-027) -- there is no
+ * poll. The escalation states are real: they appear because the ADR-012 state
+ * machine actually widened the radius, not because a timer here pretended it
+ * did.
  *
  * `?state=` forces a state with fixture data, because reviewing the
  * no-responder-found screen should not require waiting out three 30s rungs.
@@ -23,7 +24,6 @@ import { initNav } from "../shared/nav.js";
 import { CENTRE, mockIncident } from "../shared/mock.js";
 
 const STATES = ["idle", "active", "expanding", "none"];
-const POLL_MS = 2000;
 const STEP_LABELS = ["SOS Sent", "Alerting Volunteers", "Responder Assigned", "On the Way", "Help Arrived"];
 
 const el = (id) => document.getElementById(id);
@@ -32,7 +32,6 @@ const forcedState = new URLSearchParams(location.search).get("state");
 let user = null;
 let position = null;
 let incident = null;
-let pollTimer = null;
 let tickTimer = null;
 let startedAt = null;
 let map = null;
@@ -112,7 +111,7 @@ function renderIncident(sos) {
 
   if (sos.status === "no_responder_found") {
     showState("none");
-    stopPolling();
+    stopTicking();
     return;
   }
 
@@ -125,7 +124,7 @@ function renderIncident(sos) {
         : "Your request is closed.";
     note.hidden = false;
     showState("idle");
-    stopPolling();
+    stopTicking();
     return;
   }
 
@@ -141,27 +140,32 @@ function renderIncident(sos) {
   startTicking();
 }
 
-function startPolling(id) {
-  stopPolling();
-  pollTimer = setInterval(async () => {
-    try {
-      renderIncident(await api.getSos(id));
-    } catch {
-      /* transient; the next tick retries */
-    }
-  }, POLL_MS);
+/* Reconcile once, over HTTP.
+ *
+ * Not the poll returning. The socket has no replay, so a client that was
+ * disconnected when an event fired has no way to learn what it missed -- this
+ * runs on connect and on every reconnect, and nowhere else (ADR-027). Without
+ * it a dropped socket freezes this screen mid-emergency, which is the failure
+ * pushing was meant to remove rather than one to introduce.
+ */
+async function reconcile() {
+  if (!incident) return;
+  try {
+    renderIncident(await api.getSos(incident.id));
+  } catch {
+    /* The socket is the live path; a failed resync is not worth alarming over. */
+  }
 }
 
-function stopPolling() {
-  if (pollTimer) clearInterval(pollTimer);
+function stopTicking() {
   if (tickTimer) clearInterval(tickTimer);
-  pollTimer = null;
   tickTimer = null;
 }
 
-/* The elapsed counter ticks locally, once a second. Driving it from the poll
- * made it jump in two-second steps, which reads as a stalled page at exactly
- * the moment a citizen is watching for any sign the system is still working.
+/* The elapsed counter ticks locally, once a second. It has to: the server sends
+ * nothing between events, and a counter that only moved when the radius widened
+ * would sit frozen for thirty seconds at exactly the moment a citizen is
+ * watching for any sign the system is still working.
  * The radius and wave beside it still come only from the server -- those are
  * facts about the incident, and guessing at them would be inventing state. */
 function startTicking() {
@@ -224,7 +228,7 @@ async function triggerSos() {
     const sos = await api.createSos(position.lat, position.lng, description);
     startedAt = Date.now();
     renderIncident({ ...sos, lat: position.lat, lng: position.lng });
-    startPolling(sos.id);
+    // No poll. The socket carries what happens next (ADR-027).
   } catch (error) {
     el("idle-error").textContent = error.detail || error.message;
     el("idle-error").hidden = false;
@@ -310,8 +314,31 @@ async function boot() {
   locate();
 
   const channel = new RealtimeChannel(user.id);
-  channel.addEventListener("ready", () => { el("conn-pill").textContent = "connected"; });
-  channel.addEventListener("offline", () => { el("conn-pill").textContent = "reconnecting…"; });
+
+  channel.addEventListener("ready", () => {
+    el("conn-pill").textContent = "connected";
+    el("conn-pill").className = "pill pill--success";
+    // Catch up on anything that happened while we were not listening.
+    reconcile();
+  });
+
+  channel.addEventListener("offline", () => {
+    el("conn-pill").textContent = "reconnecting…";
+    el("conn-pill").className = "pill pill--warn";
+  });
+
+  // Every incident event carries a full snapshot, so all five apply the same
+  // way and a missed one costs nothing once the next arrives (ADR-027).
+  for (const event of [
+    "sos_matched",
+    "sos_escalated",
+    "sos_resolved",
+    "sos_cancelled",
+    "sos_no_responder",
+  ]) {
+    channel.addEventListener(event, (message) => renderIncident(message.detail));
+  }
+
   channel.connect();
 }
 
