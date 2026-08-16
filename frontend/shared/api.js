@@ -88,6 +88,8 @@ export const api = {
 
   analytics: (windowDays = 30) => request("GET", `/admin/analytics?window_days=${windowDays}`),
   adminIncidents: () => request("GET", "/admin/incidents"),
+  // Every dispatch decision for one incident -- the reader for ADR-014's log.
+  adminIncident: (id) => request("GET", `/admin/incidents/${id}`),
 };
 
 /** Browser geolocation as a promise, with an honest failure. */
