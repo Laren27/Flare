@@ -10,15 +10,17 @@
  */
 
 import { api, auth, currentPosition, requireAuth } from "../shared/api.js";
-import { formatDistance, initials } from "../shared/format.js";
+import { duration, formatDistance, initials } from "../shared/format.js";
 import { RealtimeChannel } from "../shared/ws.js";
 import { createMap, incidentMarker, leafletAvailable } from "../shared/map.js";
 import { initNav } from "../shared/nav.js";
-import { mockBadges, mockRecentAlerts } from "../shared/mock.js";
+import { mockAlert, mockBadges, mockRecentAlerts } from "../shared/mock.js";
 
 const el = (id) => document.getElementById(id);
+const preview = new URLSearchParams(location.search).get("preview");
 let currentAlert = null;
 let alertMap = null;
+let elapsedTimer = null;
 
 /* ---- availability ------------------------------------------------------- */
 /* Going online publishes a position (ADR-026). The server refuses to record
@@ -143,6 +145,33 @@ function renderBadges() {
 
 /* ---- incoming alert ----------------------------------------------------- */
 
+function showAlertView(name) {
+  el("alert-incoming").hidden = name !== "incoming";
+  el("alert-handled").hidden = name !== "handled";
+  el("alert-overlay").hidden = false;
+}
+
+function closeAlert() {
+  el("alert-overlay").hidden = true;
+  if (elapsedTimer) clearInterval(elapsedTimer);
+  elapsedTimer = null;
+  currentAlert = null;
+}
+
+/* Elapsed since the alert reached us, ticking locally. Not a countdown: the
+ * accept timeout expands the radius and alerts more responders, and this
+ * responder's alert stays open throughout (ADR-012). */
+function startElapsed(since) {
+  if (elapsedTimer) clearInterval(elapsedTimer);
+  const tick = () => {
+    const seconds = Math.max(0, Math.round((Date.now() - since) / 1000));
+    el("alert-elapsed").textContent =
+      seconds < 5 ? "Alerted just now" : `Alerted ${duration(seconds)} ago`;
+  };
+  tick();
+  elapsedTimer = setInterval(tick, 1000);
+}
+
 function openAlert(payload) {
   currentAlert = payload;
   el("alert-category").textContent = payload.ai_category || "Unspecified emergency";
@@ -151,7 +180,8 @@ function openAlert(payload) {
   el("alert-message").hidden = true;
   el("alert-accept").disabled = false;
   el("alert-decline").disabled = false;
-  el("alert-overlay").hidden = false;
+  showAlertView("incoming");
+  startElapsed(Date.parse(payload.created_at) || Date.now());
 
   if (leafletAvailable() && !alertMap) {
     alertMap = createMap(el("alert-map"), { lat: payload.lat, lng: payload.lng, zoom: 14 });
@@ -179,13 +209,13 @@ async function acceptCurrent() {
     const result = await api.acceptSos(currentAlert.sos_id);
     if (result.accepted) {
       alertMessage("Assigned to you — head to the incident.", "success");
-      setTimeout(() => {
-        location.href = `/app/volunteer/alert.html?view=accepted&sos=${currentAlert.sos_id}`;
-      }, 900);
+      const id = currentAlert.sos_id;
+      setTimeout(() => { location.href = `/app/volunteer/assignment.html?sos=${id}`; }, 900);
     } else {
-      // The accept-lock refused a second claim. Not an error.
-      alertMessage("Already handled — another responder accepted first.", "info");
-      setTimeout(() => { el("alert-overlay").hidden = true; }, 1800);
+      // The accept-lock refused a second claim. Its own screen, not a toast
+      // that fades: being second is the expected outcome for every responder
+      // but one, and it deserves the explanation.
+      showAlertView("handled");
     }
   } catch (error) {
     alertMessage(error.detail || error.message, "error");
@@ -195,8 +225,7 @@ async function acceptCurrent() {
 
 async function declineCurrent() {
   if (currentAlert) await api.declineSos(currentAlert.sos_id).catch(() => {});
-  el("alert-overlay").hidden = true;
-  currentAlert = null;
+  closeAlert();
 }
 
 /* ---- boot --------------------------------------------------------------- */
@@ -225,6 +254,19 @@ async function boot() {
 
   el("alert-accept").addEventListener("click", acceptCurrent);
   el("alert-decline").addEventListener("click", declineCurrent);
+  el("alert-dismiss").addEventListener("click", closeAlert);
+
+  // Both alert states without staging an incident, the way the citizen view
+  // renders its escalation states. This is what the standalone alert page was
+  // really for; keeping it as a query parameter costs one branch instead of a
+  // second implementation that drifts.
+  el("preview-switch").hidden = false;
+  el("preview-select").value = preview ?? "";
+  el("preview-select").addEventListener("change", (event) => {
+    location.search = event.target.value ? `?preview=${event.target.value}` : "";
+  });
+  if (preview === "incoming") openAlert(mockAlert);
+  if (preview === "handled") showAlertView("handled");
   el("logout").addEventListener("click", (event) => {
     event.preventDefault();
     auth.clear();
