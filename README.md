@@ -134,6 +134,23 @@ later on the first query.
 | `GET` | `/admin/queries` | the traceability index of query files |
 | `WS` | `/ws/{user_id}` | real-time channel; first frame must be `{"type":"auth","token":…}` (ADR-022) |
 
+### Real-time events (ADR-027)
+
+Client to server: one frame only, the auth frame above.
+
+Server to client:
+
+| Event | To | Payload |
+|---|---|---|
+| `auth_ok` | the connecting user | `{user_id}` |
+| `sos_alert` | selected responders | incident, distance, wave, radius |
+| `sos_matched` · `sos_escalated` · `sos_resolved` · `sos_cancelled` · `sos_no_responder` | the victim | full incident snapshot, same fields as `GET /sos/{id}` |
+| `alert_closed` | responders still holding an open alert | `{sos_id, reason}` |
+
+Incident events carry a snapshot rather than a delta, so applying the same one
+twice — or only the last of several — lands in the same place. Clients reconcile
+with one `GET /sos/{id}` on connect; there is no polling.
+
 ## Simulation harness (ADR-016)
 
 ```bash
