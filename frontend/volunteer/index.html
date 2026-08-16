@@ -121,30 +121,75 @@
      is interrupted by an incident rather than having to be on the right page. -->
 <div class="overlay" id="alert-overlay" hidden>
   <div class="alert-card" role="dialog" aria-modal="true" aria-labelledby="alert-title">
-    <div class="alert-card__head"><span>🔔</span><span id="alert-title">Incoming Alert</span></div>
-    <div class="alert-card__body stack">
-      <div class="row row--nowrap">
-        <div class="avatar avatar--alert">❤️</div>
+
+    <!-- ③a Incoming. The one alert implementation in the product: this modal
+         used to be duplicated by a standalone alert page whose accept and
+         decline behaved differently on a lost race. -->
+    <div id="alert-incoming">
+      <div class="alert-card__head"><span>🔔</span><span id="alert-title">Incoming alert</span></div>
+      <div class="alert-card__body stack">
+        <div class="row row--nowrap">
+          <div class="avatar avatar--alert">❤️</div>
+          <div>
+            <div class="strong" id="alert-category">Emergency</div>
+            <div class="tiny muted"><span id="alert-distance">—</span> away</div>
+          </div>
+        </div>
         <div>
-          <div class="strong" id="alert-category">Emergency</div>
-          <div class="tiny muted"><span id="alert-distance">—</span> away</div>
+          <div class="stat__label">Reported</div>
+          <div class="small" id="alert-description">—</div>
+        </div>
+        <!-- No "Required Skills" row. The dispatch engine ranks by skill, it does
+             not filter (ADR-021), so no incident carries a required-skill set --
+             the chips here were two hard-coded strings. -->
+        <div class="map" style="height:160px" id="alert-map"></div>
+
+        <!-- Elapsed, deliberately not a countdown. The accept timeout widens the
+             radius and alerts additional responders; ADR-012 is explicit that
+             previously-alerted responders keep their open alert. A ring counting
+             down to zero would claim this alert is about to expire, which is
+             false -- what expires is exclusivity, not the alert. -->
+        <p class="tiny muted center" id="alert-elapsed">Alerted just now</p>
+        <div id="alert-message" class="toast" hidden></div>
+      </div>
+      <div class="alert-card__actions">
+        <button class="btn btn--outline-danger" id="alert-decline">DECLINE</button>
+        <button class="btn btn--success" id="alert-accept">ACCEPT</button>
+      </div>
+    </div>
+
+    <!-- ③b Already handled. This screen IS the accept-lock made visible: the
+         database refused a second claim and the responder is told so plainly.
+         Neutral, not an error -- losing a race you entered in good faith is not
+         a mistake, and styling it red would punish people for volunteering. -->
+    <div id="alert-handled" hidden>
+      <div class="alert-card__body">
+        <div class="terminal">
+          <div class="terminal__icon terminal__icon--ok">✓</div>
+          <h2 class="terminal__title">Already handled</h2>
+          <p class="terminal__body">
+            Another responder accepted this incident before you. No further action is
+            needed — help is on the way.
+          </p>
+          <p class="tiny muted">
+            Only the first acceptance is assigned. The lock is enforced by the database,
+            so exactly one responder is ever dispatched to an incident.
+          </p>
+          <button class="btn btn--ghost mt-4" id="alert-dismiss">Close</button>
         </div>
       </div>
-      <div>
-        <div class="stat__label">Reported</div>
-        <div class="small" id="alert-description">—</div>
-      </div>
-      <!-- No "Required Skills" row. The dispatch engine ranks by skill, it does
-           not filter (ADR-021), so no incident carries a required-skill set --
-           the chips here were two hard-coded strings. -->
-      <div class="map" style="height:160px" id="alert-map"></div>
-      <div id="alert-message" class="toast" hidden></div>
     </div>
-    <div class="alert-card__actions">
-      <button class="btn btn--outline-danger" id="alert-decline">DECLINE</button>
-      <button class="btn btn--success" id="alert-accept">ACCEPT</button>
-    </div>
+
   </div>
+</div>
+
+<div class="state-switch" id="preview-switch" hidden>
+  <span>Preview</span>
+  <select id="preview-select">
+    <option value="">live</option>
+    <option value="incoming">incoming alert</option>
+    <option value="handled">already handled</option>
+  </select>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
