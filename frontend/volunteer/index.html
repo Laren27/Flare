@@ -28,14 +28,14 @@
 
 <div class="app">
   <nav class="sidebar app__sidebar" aria-label="Responder navigation">
-    <a class="brand brand--light sidebar__brand" href="/app/"><span class="brand__mark">🔥</span> FLARE</a>
-    <a class="sidebar__link" href="#" aria-current="page"><span class="sidebar__icon">🏠</span><span class="sidebar__label">Home</span></a>
-    <a class="sidebar__link sidebar__link--soon" href="#alerts"><span class="sidebar__icon">🔔</span><span class="sidebar__label">My Alerts</span><span class="sidebar__soon">soon</span></a>
-    <a class="sidebar__link sidebar__link--soon" href="#routes"><span class="sidebar__icon">🗺️</span><span class="sidebar__label">My Routes</span><span class="sidebar__soon">soon</span></a>
-    <a class="sidebar__link sidebar__link--soon" href="#profile"><span class="sidebar__icon">👤</span><span class="sidebar__label">My Profile</span><span class="sidebar__soon">soon</span></a>
-    <a class="sidebar__link sidebar__link--soon" href="#certificates"><span class="sidebar__icon">📄</span><span class="sidebar__label">Certificates</span><span class="sidebar__soon">soon</span></a>
+    <a class="brand brand--light sidebar__brand" href="/app/"><span class="brand__mark" aria-hidden="true">🔥</span> FLARE</a>
+    <a class="sidebar__link" href="#" aria-current="page"><span class="sidebar__icon" aria-hidden="true">🏠</span><span class="sidebar__label">Home</span></a>
+    <a class="sidebar__link sidebar__link--soon" href="#alerts"><span class="sidebar__icon" aria-hidden="true">🔔</span><span class="sidebar__label">My Alerts</span><span class="sidebar__soon">soon</span></a>
+    <a class="sidebar__link sidebar__link--soon" href="#routes"><span class="sidebar__icon" aria-hidden="true">🗺️</span><span class="sidebar__label">My Routes</span><span class="sidebar__soon">soon</span></a>
+    <a class="sidebar__link sidebar__link--soon" href="#profile"><span class="sidebar__icon" aria-hidden="true">👤</span><span class="sidebar__label">My Profile</span><span class="sidebar__soon">soon</span></a>
+    <a class="sidebar__link sidebar__link--soon" href="#certificates"><span class="sidebar__icon" aria-hidden="true">📄</span><span class="sidebar__label">Certificates</span><span class="sidebar__soon">soon</span></a>
     <div class="sidebar__spacer"></div>
-    <a class="sidebar__link" href="#" id="logout"><span class="sidebar__icon">⏻</span><span class="sidebar__label">Logout</span></a>
+    <a class="sidebar__link" href="#" id="logout"><span class="sidebar__icon" aria-hidden="true">⏻</span><span class="sidebar__label">Logout</span></a>
   </nav>
 
   <header class="topbar">
@@ -128,7 +128,7 @@
       <div class="alert-card__head"><span>🔔</span><span id="alert-title">Incoming alert</span></div>
       <div class="alert-card__body stack">
         <div class="row row--nowrap">
-          <div class="avatar avatar--alert">❤️</div>
+          <div class="avatar avatar--alert" aria-hidden="true">❤️</div>
           <div>
             <div class="strong" id="alert-category">Emergency</div>
             <div class="tiny muted"><span id="alert-distance">—</span> away</div>
@@ -164,7 +164,7 @@
     <div id="alert-handled" hidden>
       <div class="alert-card__body">
         <div class="terminal">
-          <div class="terminal__icon terminal__icon--ok" id="closed-icon">✓</div>
+          <div class="terminal__icon terminal__icon--ok" id="closed-icon" aria-hidden="true">✓</div>
           <h2 class="terminal__title" id="closed-title">Already handled</h2>
           <p class="terminal__body" id="closed-body">
             Another responder accepted this incident before you. No further action is
