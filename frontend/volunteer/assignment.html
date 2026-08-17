@@ -16,12 +16,12 @@
 
 <div class="app">
   <nav class="sidebar app__sidebar" aria-label="Responder navigation">
-    <a class="brand brand--light sidebar__brand" href="/app/"><span class="brand__mark">🔥</span> FLARE</a>
-    <a class="sidebar__link" href="/app/volunteer/"><span class="sidebar__icon">🏠</span><span class="sidebar__label">Home</span></a>
-    <a class="sidebar__link" href="#" aria-current="page"><span class="sidebar__icon">🚑</span><span class="sidebar__label">Assignment</span></a>
-    <a class="sidebar__link sidebar__link--soon" href="#profile"><span class="sidebar__icon">👤</span><span class="sidebar__label">My Profile</span><span class="sidebar__soon">soon</span></a>
+    <a class="brand brand--light sidebar__brand" href="/app/"><span class="brand__mark" aria-hidden="true">🔥</span> FLARE</a>
+    <a class="sidebar__link" href="/app/volunteer/"><span class="sidebar__icon" aria-hidden="true">🏠</span><span class="sidebar__label">Home</span></a>
+    <a class="sidebar__link" href="#" aria-current="page"><span class="sidebar__icon" aria-hidden="true">🚑</span><span class="sidebar__label">Assignment</span></a>
+    <a class="sidebar__link sidebar__link--soon" href="#profile"><span class="sidebar__icon" aria-hidden="true">👤</span><span class="sidebar__label">My Profile</span><span class="sidebar__soon">soon</span></a>
     <div class="sidebar__spacer"></div>
-    <a class="sidebar__link" href="#" id="logout"><span class="sidebar__icon">⏻</span><span class="sidebar__label">Logout</span></a>
+    <a class="sidebar__link" href="#" id="logout"><span class="sidebar__icon" aria-hidden="true">⏻</span><span class="sidebar__label">Logout</span></a>
   </nav>
 
   <header class="topbar">
@@ -86,7 +86,7 @@
     <section id="closed" hidden>
       <div class="card">
         <div class="terminal">
-          <div class="terminal__icon terminal__icon--ok" id="closed-icon">✓</div>
+          <div class="terminal__icon terminal__icon--ok" id="closed-icon" aria-hidden="true">✓</div>
           <h2 class="terminal__title" id="closed-title">Incident closed</h2>
           <p class="terminal__body" id="closed-body">This incident is no longer active.</p>
           <a class="btn btn--ghost" href="/app/volunteer/">Back to dashboard</a>
