@@ -654,7 +654,16 @@ Explicitly named as *not built*, to demonstrate awareness without overclaiming:
   load (Ch. 25).
 - Offline/low-connectivity SMS fallback for SOS triggering
 - Voice-based SOS activation
-- Full routing-based ETA (vs. current straight-line estimate)
+- Full routing-based ETA. There is no straight-line estimate any more either:
+  the helper existed but had no caller once responder live location was
+  confirmed as unbuilt, and it was deleted rather than left available, since a
+  working ETA helper is how that number finds its way back onto a screen.
+- **Per-wave radius rings on the admin map.** The incident detail page reports
+  each wave's radius and its rejections as numbers, and the escalation is fully
+  reconstructable from `DispatchEvents` — what is not built is drawing those
+  rings on a map. The data is all present and the citizen view already renders
+  the ladder as circles; this is presentation work that was scoped out in
+  favour of the accessibility pass, not a gap in what the system records.
 
 ## Chapter 27 — Demo Strategy
 
