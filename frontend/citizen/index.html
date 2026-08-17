@@ -16,13 +16,13 @@
 
 <div class="app">
   <nav class="sidebar app__sidebar" aria-label="Citizen navigation">
-    <a class="brand brand--light sidebar__brand" href="/app/"><span class="brand__mark">🔥</span> FLARE</a>
-    <a class="sidebar__link" href="#" aria-current="page"><span class="sidebar__icon">🚨</span><span class="sidebar__label">Emergency</span></a>
-    <a class="sidebar__link sidebar__link--soon" href="#history"><span class="sidebar__icon">📋</span><span class="sidebar__label">My Requests</span><span class="sidebar__soon">soon</span></a>
-    <a class="sidebar__link sidebar__link--soon" href="#location"><span class="sidebar__icon">📍</span><span class="sidebar__label">My Location</span><span class="sidebar__soon">soon</span></a>
-    <a class="sidebar__link sidebar__link--soon" href="#profile"><span class="sidebar__icon">👤</span><span class="sidebar__label">Profile</span><span class="sidebar__soon">soon</span></a>
+    <a class="brand brand--light sidebar__brand" href="/app/"><span class="brand__mark" aria-hidden="true">🔥</span> FLARE</a>
+    <a class="sidebar__link" href="#" aria-current="page"><span class="sidebar__icon" aria-hidden="true">🚨</span><span class="sidebar__label">Emergency</span></a>
+    <a class="sidebar__link sidebar__link--soon" href="#history"><span class="sidebar__icon" aria-hidden="true">📋</span><span class="sidebar__label">My Requests</span><span class="sidebar__soon">soon</span></a>
+    <a class="sidebar__link sidebar__link--soon" href="#location"><span class="sidebar__icon" aria-hidden="true">📍</span><span class="sidebar__label">My Location</span><span class="sidebar__soon">soon</span></a>
+    <a class="sidebar__link sidebar__link--soon" href="#profile"><span class="sidebar__icon" aria-hidden="true">👤</span><span class="sidebar__label">Profile</span><span class="sidebar__soon">soon</span></a>
     <div class="sidebar__spacer"></div>
-    <a class="sidebar__link" href="#" id="logout"><span class="sidebar__icon">⏻</span><span class="sidebar__label">Logout</span></a>
+    <a class="sidebar__link" href="#" id="logout"><span class="sidebar__icon" aria-hidden="true">⏻</span><span class="sidebar__label">Logout</span></a>
   </nav>
 
   <header class="topbar">
@@ -193,7 +193,7 @@
     <section id="state-none" hidden>
       <div class="card">
         <div class="terminal">
-          <div class="terminal__icon">📞</div>
+          <div class="terminal__icon" aria-hidden="true">📞</div>
           <h2 class="terminal__title">No responder was available</h2>
           <p class="terminal__body">
             We searched out to 3&nbsp;km and could not reach a verified responder.
