@@ -282,7 +282,55 @@ async function declineCurrent() {
 
 /* ---- boot --------------------------------------------------------------- */
 
+const PREVIEWS = ["incoming", "handled"];
+
+/* Preview runs before the auth check, matching the citizen view.
+ *
+ * It used to run after, which made these two screens unreachable for anyone
+ * not signed in AS A VOLUNTEER -- an admin opening them was bounced to login on
+ * a role mismatch, so the one person rehearsing the demo was the one person who
+ * could not see them.
+ *
+ * The accept and decline handlers are deliberately NOT wired here. mockAlert
+ * carries `sos_id: 128`, which is a real id: a signed-in volunteer pressing
+ * ACCEPT on a preview screen would have claimed live incident 128. A preview
+ * must not be able to reach the dispatch engine at all.
+ */
+function bootPreview(name) {
+  initNav();
+  el("user-name").textContent = "Preview";
+  el("user-initials").textContent = "P";
+  el("conn-pill").textContent = "preview";
+  renderRecent();
+  renderBadges();
+
+  el("preview-switch").hidden = false;
+  el("preview-select").value = name;
+  el("preview-select").addEventListener("change", (event) => {
+    location.search = event.target.value ? `?preview=${event.target.value}` : "";
+  });
+
+  el("alert-dismiss").addEventListener("click", closeAlert);
+  for (const id of ["alert-accept", "alert-decline"]) {
+    el(id).disabled = true;
+    el(id).title = "Disabled in preview — this screen cannot reach the dispatch engine";
+  }
+
+  if (name === "incoming") openAlert(mockAlert);
+  if (name === "handled") showAlertClosed("accepted");
+
+  // openAlert re-enables the buttons for the live path, so disable again after.
+  if (name === "incoming") {
+    for (const id of ["alert-accept", "alert-decline"]) el(id).disabled = true;
+  }
+}
+
 async function boot() {
+  if (preview && PREVIEWS.includes(preview)) {
+    bootPreview(preview);
+    return;
+  }
+
   const user = requireAuth("volunteer");
   if (!user) return;
 
@@ -308,17 +356,14 @@ async function boot() {
   el("alert-decline").addEventListener("click", declineCurrent);
   el("alert-dismiss").addEventListener("click", closeAlert);
 
-  // Both alert states without staging an incident, the way the citizen view
-  // renders its escalation states. This is what the standalone alert page was
-  // really for; keeping it as a query parameter costs one branch instead of a
-  // second implementation that drifts.
+  // The switcher is offered on the live page too, so a rehearsal can jump into
+  // a preview from here. Selecting one reloads into `bootPreview`.
   el("preview-switch").hidden = false;
-  el("preview-select").value = preview ?? "";
+  el("preview-select").value = "";
   el("preview-select").addEventListener("change", (event) => {
     location.search = event.target.value ? `?preview=${event.target.value}` : "";
   });
-  if (preview === "incoming") openAlert(mockAlert);
-  if (preview === "handled") showAlertClosed("accepted");
+
   el("logout").addEventListener("click", (event) => {
     event.preventDefault();
     auth.clear();
