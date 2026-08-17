@@ -9,6 +9,7 @@
  * the page says so rather than implying the numbers were measured.
  */
 
+import { announce, trapFocus } from "../shared/a11y.js";
 import { api, auth, currentPosition, requireAuth } from "../shared/api.js";
 import { duration, formatDistance, initials } from "../shared/format.js";
 import { RealtimeChannel } from "../shared/ws.js";
@@ -21,6 +22,7 @@ const preview = new URLSearchParams(location.search).get("preview");
 let currentAlert = null;
 let alertMap = null;
 let elapsedTimer = null;
+let releaseFocus = null;
 
 /* ---- availability ------------------------------------------------------- */
 /* Going online publishes a position (ADR-026). The server refuses to record
@@ -149,6 +151,12 @@ function showAlertView(name) {
   el("alert-incoming").hidden = name !== "incoming";
   el("alert-handled").hidden = name !== "handled";
   el("alert-overlay").hidden = false;
+
+  // Re-trapped on every view change: the incoming and handled panels contain
+  // different controls, so a trap scoped to the old set would leave the new
+  // buttons unreachable.
+  releaseFocus?.();
+  releaseFocus = trapFocus(el("alert-overlay"), { onEscape: closeAlert });
 }
 
 /* Why this alert stopped being answerable. Only the first of these is the
@@ -177,6 +185,7 @@ const CLOSED_COPY = {
 
 function showAlertClosed(reason) {
   const copy = CLOSED_COPY[reason] ?? CLOSED_COPY.accepted;
+  announce(`${copy.title}. ${copy.body}`);
   el("closed-icon").textContent = copy.icon;
   el("closed-title").textContent = copy.title;
   el("closed-body").textContent = copy.body;
@@ -185,6 +194,8 @@ function showAlertClosed(reason) {
 }
 
 function closeAlert() {
+  releaseFocus?.();
+  releaseFocus = null;
   el("alert-overlay").hidden = true;
   if (elapsedTimer) clearInterval(elapsedTimer);
   elapsedTimer = null;
@@ -215,6 +226,14 @@ function openAlert(payload) {
   el("alert-decline").disabled = false;
   showAlertView("incoming");
   startElapsed(Date.parse(payload.created_at) || Date.now());
+
+  // Assertive: an emergency alert is the one thing in this product that has
+  // earned the right to interrupt whatever a screen reader was saying.
+  announce(
+    `Incoming emergency alert, ${formatDistance(payload.distance_m)} away. ` +
+      `${payload.ai_category || "Unspecified emergency"}.`,
+    "assertive"
+  );
 
   if (leafletAvailable() && !alertMap) {
     alertMap = createMap(el("alert-map"), { lat: payload.lat, lng: payload.lng, zoom: 14 });
