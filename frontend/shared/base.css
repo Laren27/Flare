@@ -22,6 +22,12 @@ body {
   background: var(--surface-alt);
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  /* dvh, not vh. On mobile browsers 100vh is the viewport with the address bar
+     hidden, so a 100vh layout is taller than the screen until you scroll --
+     which on the citizen view pushes the SOS button partly below the fold on
+     first paint. The vh line above stays as the fallback for anything without
+     dvh support. */
+  min-height: 100dvh;
 }
 
 h1,
@@ -89,12 +95,34 @@ textarea {
   display: grid;
   grid-template-rows: auto 1fr;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .app__main {
   padding: var(--s-4);
   padding-bottom: calc(var(--s-8) + var(--s-6)); /* clear the mobile nav */
   overflow-x: hidden;
+}
+
+/* Tablet. The grids below are auto-fit and already reflow on their own, so this
+   band deliberately changes only what they cannot: breathing room. */
+@media (min-width: 600px) {
+  .app__main { padding: var(--s-5); }
+}
+
+/* The citizen incident view goes two-column only once both panes have room.
+   At 600px the panel takes 280 and leaves the map about 260 -- narrower than
+   the map is tall, which is worse than stacking. 720 is where a tablet in
+   portrait and a phone in landscape both clear it. */
+@media (min-width: 720px) {
+  .grid--sos { grid-template-columns: minmax(280px, 340px) 1fr; }
+}
+
+/* Landscape phones. Roughly 400px of height, of which a 64px topbar and a 44px
+   bottom bar are chrome -- worth reclaiming some of it. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .topbar { height: auto; padding-block: var(--s-2); }
+  .app__main { padding-block: var(--s-3); }
 }
 
 @media (min-width: 900px) {
