@@ -35,6 +35,29 @@
   --ink-2: #334155;
   --line: #e2e8f0;
 
+  /* Text-safe counterparts, measured rather than guessed.
+   *
+   * The palette above is locked, and these do not change it -- they are the
+   * variants used when a colour carries TEXT rather than fills a shape, where
+   * WCAG asks for 4.5:1 rather than the 3:1 a UI component needs. Measured
+   * against the surface each is actually used on:
+   *
+   *   --muted   #64748b on --surface-alt  4.34  fails
+   *   --muted-text #5b6b81 on --surface-alt  4.96  passes
+   *   --blue    #3b82f6 on white          3.68  fails  (every link in the app)
+   *   --blue-text  #2563eb on white       5.17  passes
+   *   --flare-red #ef4444 on white        3.76  fails  (outline-danger label)
+   *   --red-text   #dc2626 on white       4.83  passes
+   *   --red-dark  #dc2626 on --red-tint   4.41  fails  (the live pill)
+   *   --red-text-tint #b91c1c on --red-tint  5.91  passes
+   *
+   * Fills keep the locked colours: a red button is still --flare-red, because
+   * the shape is the thing being seen and its label sits on white. */
+  --muted-text: #5b6b81;
+  --blue-text: #2563eb;
+  --red-text: #dc2626;
+  --red-text-tint: #b91c1c;
+
   /* Type. Poppins for display, Inter for text -- both named in the spec.
      The system stack behind them keeps the layout legible if webfonts fail
      to load, which Ch. 25 lists as a live demo-day risk. */
