@@ -135,6 +135,7 @@
     top: 0;
     align-self: start;
     height: 100vh;
+    height: 100dvh;
     overflow-y: auto;
     flex-direction: column;
     justify-content: flex-start;
@@ -406,6 +407,15 @@
 }
 .map--tall { height: clamp(320px, 60vh, 560px); }
 
+/* On a phone the incident panel and the map stack, so a 60vh map pushes the
+   status, the responder and the cancel control below the fold -- the map
+   becomes the screen, when it is the least actionable thing on it. Capped
+   until there is width to place the two side by side. */
+@media (max-width: 719px) {
+  .map      { height: clamp(200px, 34vh, 300px); }
+  .map--tall { height: clamp(220px, 38vh, 340px); }
+}
+
 .map__fallback {
   position: absolute;
   inset: 0;
@@ -450,7 +460,11 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   width: min(420px, 100%);
-  overflow: hidden;
+  /* Scrolls inside itself rather than overflowing the viewport. On a landscape
+     phone the card is taller than the screen, and ACCEPT sitting below the fold
+     with no way to reach it is the worst possible failure for this control. */
+  max-height: 92dvh;
+  overflow-y: auto;
   animation: alert-in 0.22s var(--ease);
 }
 @keyframes alert-in {
