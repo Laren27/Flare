@@ -39,7 +39,7 @@ h2 { font-size: var(--text-xl); }
 h3 { font-size: var(--text-lg); }
 
 a {
-  color: var(--blue);
+  color: var(--blue-text);
   text-decoration: none;
 }
 a:hover { text-decoration: underline; }
@@ -166,7 +166,9 @@ textarea {
 .measure        { max-width: 70ch; }
 .measure--narrow { max-width: 40ch; }
 
-.muted    { color: var(--muted); }
+/* --muted-text, not --muted: this class lands on the page background as often
+   as it lands on a card, and --muted clears 4.5 only against white. */
+.muted    { color: var(--muted-text); }
 .small    { font-size: var(--text-sm); }
 .tiny     { font-size: var(--text-xs); }
 .strong   { font-weight: 600; }
