@@ -10,6 +10,7 @@
  * no-responder-found screen should not require waiting out three 30s rungs.
  */
 
+import { announce } from "../shared/a11y.js";
 import { api, auth, currentPosition, requireAuth } from "../shared/api.js";
 import { initials } from "../shared/format.js";
 import { RealtimeChannel } from "../shared/ws.js";
@@ -38,6 +39,30 @@ let map = null;
 let markers = { incident: null, circles: [] };
 
 /* ---- state rendering --------------------------------------------------- */
+
+/* The last thing announced, so a repeated render stays silent -- the
+ * reconciliation fetch on every reconnect re-renders the current state and
+ * should not re-announce it.
+ *
+ * Keyed on the message rather than the state name on purpose: two escalations
+ * are both `expanding`, and a guard on the name would swallow the second one,
+ * silencing the radius change that is the whole reason to speak. */
+let announced = null;
+
+function announceState(name, detail) {
+  const message = {
+    active: `Responder assigned. ${detail}`,
+    expanding: `No response yet. ${detail}`,
+    none: "No responder was available. Please call emergency services on 112.",
+    idle: detail,
+  }[name];
+
+  if (message === announced) return;
+  announced = message;
+
+  // Terminal and assignment interrupt; a widening search waits for a pause.
+  announce(message, name === "none" || name === "active" ? "assertive" : "polite");
+}
 
 function showState(name) {
   for (const state of STATES) {
@@ -106,12 +131,14 @@ function renderIncident(sos) {
     // The assignment is the whole of what is real here: an id, from the accept
     // lock. No name endpoint exists, and no position (Ch. 26).
     el("responder-name").textContent = `Responder #${sos.accepted_by}`;
+    announceState("active", "Help is on the way.");
     return;
   }
 
   if (sos.status === "no_responder_found") {
     showState("none");
     stopTicking();
+    announceState("none");
     return;
   }
 
@@ -125,6 +152,7 @@ function renderIncident(sos) {
     note.hidden = false;
     showState("idle");
     stopTicking();
+    announceState("idle", note.textContent);
     return;
   }
 
@@ -138,6 +166,10 @@ function renderIncident(sos) {
     ring.classList.toggle("is-active", i === Math.max(0, index));
   });
   startTicking();
+  announceState(
+    "expanding",
+    `Searching within ${sos.current_radius_m} metres, wave ${sos.wave_count}.`
+  );
 }
 
 /* Reconcile once, over HTTP.
