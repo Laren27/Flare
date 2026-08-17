@@ -93,6 +93,24 @@ def create_app() -> FastAPI:
         response = await call_next(request)
         for header, value in SECURITY_HEADERS.items():
             response.headers.setdefault(header, value)
+
+        # `no-cache` means "revalidate before reuse", not "do not store".
+        #
+        # StaticFiles already sends an ETag and Last-Modified, but sends no
+        # Cache-Control at all -- and with none present a browser is free to
+        # apply heuristic caching and reuse a file without ever asking. That is
+        # not theoretical: an ES module edited and redeployed here was served
+        # from cache afterwards, so a fix that was genuinely on disk and
+        # genuinely being served did not reach the page. Restarting the server
+        # does not help, because the stale copy is in the browser.
+        #
+        # Revalidation is cheap precisely because the ETag exists: the answer is
+        # a 304 with no body whenever nothing changed. The cost is one
+        # conditional request per asset per load; the alternative is a demo
+        # rehearsing against last week's code without knowing it.
+        if request.url.path.startswith("/app"):
+            response.headers.setdefault("Cache-Control", "no-cache")
+
         if settings.is_production:
             # Only over TLS, and only in production -- setting HSTS on a plain
             # http:// dev server would make localhost unreachable in that
