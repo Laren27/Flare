@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo Preview — FLARE Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/app/shared/tokens.css">
+<link rel="stylesheet" href="/app/shared/base.css">
+<link rel="stylesheet" href="/app/shared/components.css">
+<link rel="stylesheet" href="/app/admin/admin.css">
+<style>
+  .jump {
+    display: grid;
+    gap: var(--s-3);
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+  .jump__item {
+    display: block;
+    padding: var(--s-4);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--white);
+    color: inherit;
+  }
+  .jump__item:hover { border-color: var(--blue-text); text-decoration: none; }
+  .jump__name { font-weight: 600; }
+  .jump__url {
+    display: block;
+    margin-top: var(--s-2);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    color: var(--muted-text);
+    word-break: break-all;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <nav class="sidebar app__sidebar" aria-label="Admin navigation">
+    <a class="brand brand--light sidebar__brand" href="/app/"><span class="brand__mark" aria-hidden="true">🔥</span> FLARE</a>
+    <a class="sidebar__link" href="/app/admin/"><span class="sidebar__icon" aria-hidden="true">📊</span><span class="sidebar__label">Dashboard</span></a>
+    <a class="sidebar__link" href="/app/admin/incidents.html"><span class="sidebar__icon" aria-hidden="true">🚨</span><span class="sidebar__label">Incidents</span></a>
+    <a class="sidebar__link" href="/app/admin/volunteers.html"><span class="sidebar__icon" aria-hidden="true">👥</span><span class="sidebar__label">Volunteers</span></a>
+    <a class="sidebar__link" href="/app/admin/coverage.html"><span class="sidebar__icon" aria-hidden="true">📈</span><span class="sidebar__label">Coverage</span></a>
+    <div class="sidebar__spacer"></div>
+    <a class="sidebar__link" href="#" id="logout"><span class="sidebar__icon" aria-hidden="true">⏻</span><span class="sidebar__label">Logout</span></a>
+  </nav>
+
+  <header class="topbar">
+    <h1 class="topbar__title">Demo Preview</h1>
+    <div class="spacer"></div>
+    <div class="responder">
+      <div class="avatar avatar--sm" id="user-initials">A</div>
+      <div class="identity__meta">
+        <div class="strong" id="user-name">—</div>
+        <div class="muted">Administrator</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="app__main stack stack--loose">
+
+    <p class="notice">
+      <span class="notice__label">Demo &amp; QA</span> — jump to any screen state for
+      rehearsal. Not part of the live product. Every link below opens an existing
+      preview URL in a new tab; this page holds no state, calls no API and cannot
+      start, accept or escalate anything.
+    </p>
+
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <h3 class="card__title">Citizen</h3>
+          <p class="tiny muted">
+            Four states of one page. These render from fixtures and never reach the
+            dispatch engine.
+          </p>
+        </div>
+      </div>
+      <div class="jump">
+        <a class="jump__item" target="_blank" rel="noopener" href="/app/citizen/?state=idle">
+          <span class="jump__name">Idle — the SOS button</span>
+          <span class="small muted">Resting state, with the optional description field.</span>
+          <code class="jump__url">/app/citizen/?state=idle</code>
+        </a>
+        <a class="jump__item" target="_blank" rel="noopener" href="/app/citizen/?state=active">
+          <span class="jump__name">Responder assigned</span>
+          <span class="small muted">Post-acceptance. Shows the not-built notice for live location and ETA.</span>
+          <code class="jump__url">/app/citizen/?state=active</code>
+        </a>
+        <a class="jump__item" target="_blank" rel="noopener" href="/app/citizen/?state=expanding">
+          <span class="jump__name">Searching / escalating</span>
+          <span class="small muted">The radius ladder mid-walk. Act 3's citizen-side screen.</span>
+          <code class="jump__url">/app/citizen/?state=expanding</code>
+        </a>
+        <a class="jump__item" target="_blank" rel="noopener" href="/app/citizen/?state=none">
+          <span class="jump__name">No responder found</span>
+          <span class="small muted">The terminal state. Deliberately not styled as an error.</span>
+          <code class="jump__url">/app/citizen/?state=none</code>
+        </a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <h3 class="card__title">Volunteer</h3>
+          <p class="tiny muted">
+            Accept and decline are disabled in preview — the fixture alert carries a
+            real incident id, and a rehearsal screen must not be able to claim one.
+          </p>
+        </div>
+      </div>
+      <div class="jump">
+        <a class="jump__item" target="_blank" rel="noopener" href="/app/volunteer/?preview=incoming">
+          <span class="jump__name">Incoming alert</span>
+          <span class="small muted">The interrupting modal, with the elapsed line.</span>
+          <code class="jump__url">/app/volunteer/?preview=incoming</code>
+        </a>
+        <a class="jump__item" target="_blank" rel="noopener" href="/app/volunteer/?preview=handled">
+          <span class="jump__name">Already handled</span>
+          <span class="small muted">The accept-lock made visible. Act 2's browser-side screen.</span>
+          <code class="jump__url">/app/volunteer/?preview=handled</code>
+        </a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card__header">
+        <div>
+          <h3 class="card__title">Screens with no preview</h3>
+          <p class="tiny muted">Listed so the gaps are known rather than discovered on stage</p>
+        </div>
+      </div>
+      <p class="small muted measure">
+        The volunteer assignment screen and the admin incident detail both read a real
+        record and have no fixture mode — open them from a real incident instead
+        (<code>/app/volunteer/assignment.html?sos=N</code>,
+        <code>/app/admin/incident.html?id=N</code>). The volunteer's blocked-location
+        state and the citizen's blocked state are reached by denying location
+        permission in the browser, not by a URL. Nothing here fakes them, because a
+        preview that diverged from the live screen would be worse than none.
+      </p>
+    </div>
+
+  </main>
+</div>
+
+<script type="module" src="/app/admin/preview.js"></script>
+</body>
+</html>
