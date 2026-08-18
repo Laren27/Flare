@@ -51,12 +51,9 @@ export const mockRecentAlerts = [
   { title: "Trauma Injury", area: "Koramangala, Bangalore", when: "2 days ago", status: "accepted" },
 ];
 
-export const mockBadges = [
-  { icon: "❤️", label: "CPR", note: "Certified" },
-  { icon: "➕", label: "First Aid", note: "Certified" },
-  { icon: "🩸", label: "Blood Donor", note: "Verified" },
-  { icon: "🏅", label: "Quick Responder", note: "Top 10%" },
-];
+/* `mockBadges` is gone with the card that rendered it. It asserted CPR and
+ * first-aid certification and a "top 10%" ranking for whoever was signed in,
+ * none of which the system records. */
 
 /* ---- Admin fixtures ------------------------------------------------------
  * The analytics shapes below predate the live /admin/analytics endpoint and
