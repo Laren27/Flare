@@ -7,7 +7,7 @@
  */
 
 import { api } from "../shared/api.js";
-import { renderEmpty, renderError } from "../shared/states.js";
+import { renderEmpty, renderError, renderLoading } from "../shared/states.js";
 import { bootAdmin, el } from "./shared.js";
 
 const STATUS_PILL = {
@@ -54,6 +54,10 @@ function renderIncidents(incidents) {
 
 async function boot() {
   if (!bootAdmin()) return;
+
+  // The table rendered nothing between page load and the response landing, so a
+  // slow query and an empty database looked the same for as long as it took.
+  renderLoading(el("incidents-table"), "Loading incidents…");
 
   try {
     renderIncidents(await api.adminIncidents());
