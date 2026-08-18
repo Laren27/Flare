@@ -58,20 +58,12 @@ export function incidentMarker(map, { lat, lng }) {
     .addTo(map);
 }
 
-export function responderMarker(map, { lat, lng }, label = "R") {
-  if (!map) return null;
-  return window.L
-    .marker([lat, lng], {
-      icon: divIcon(
-        `<div style="width:30px;height:30px;border-radius:50%;background:#22c55e;color:#fff;
-          display:grid;place-items:center;font:700 11px/1 Inter,sans-serif;
-          box-shadow:0 4px 12px rgb(34 197 94 / 45%);border:3px solid #fff">${label}</div>`,
-        "flare-marker--responder",
-        30
-      ),
-    })
-    .addTo(map);
-}
+/* `responderMarker` was here, and is gone for the same reason the ETA helpers
+ * are: nothing writes a responder's position after acceptance, so there is no
+ * coordinate to place it at. It survived the earlier cleanup only because it
+ * had no caller to remove alongside it -- which is exactly how a helper for an
+ * unbuilt capability stays alive long enough to be picked up by someone who
+ * assumes the data must exist because the function does. */
 
 /** The escalation ladder, drawn. One circle per rung; the active one is solid. */
 export function radiusCircles(map, { lat, lng }, activeRadiusM, ladder = [1000, 2000, 3000]) {
