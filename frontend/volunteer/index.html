@@ -12,9 +12,6 @@
 <link rel="stylesheet" href="/app/shared/base.css">
 <link rel="stylesheet" href="/app/shared/components.css">
 <style>
-  .badges { display: grid; gap: var(--s-3); grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
-  .badge-tile { border: 1px solid var(--line); border-radius: var(--radius); padding: var(--s-4); text-align: center; }
-  .badge-tile__icon { font-size: 1.5rem; }
   .coverage { display: grid; place-items: center; padding: var(--s-4); }
   .coverage__disc {
     width: 160px; height: 160px; border-radius: 50%;
@@ -104,14 +101,15 @@
       </div>
     </div>
 
-    <div class="card">
-      <div class="card__header"><h3 class="card__title">Your Badges</h3></div>
-      <div class="badges" id="badges"></div>
-      <p class="tiny muted mt-3">
-        Badges reflect admin-verified certificates. Verification is manual by design —
-        no automated document checking is claimed.
-      </p>
-    </div>
+    <!-- "Your Badges" was here: four tiles reading CPR Certified, First Aid
+         Certified, Blood Donor Verified and Quick Responder Top 10%, all of
+         them hardcoded, under a caption claiming they reflected admin-verified
+         certificates. They reflected nothing.
+         It was also contradicted on its own page -- the availability card above
+         shows the real verification flag and the real declared skill, so an
+         unverified volunteer could read "Not yet verified" and "CPR Certified"
+         at the same time. Removed rather than relabelled: the true version of
+         this card is already up there. -->
 
   </main>
 </div>
