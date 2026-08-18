@@ -5,8 +5,8 @@
  * "already handled" state rather than an error, because being second is a
  * correct outcome, not a client mistake.
  *
- * Stats and badges are sample data -- there is no responder-history query, and
- * the page says so rather than implying the numbers were measured.
+ * Recent Alerts is sample data and says so on screen -- there is no
+ * responder-history query. Everything else on the page is read from the server.
  */
 
 import { announce, trapFocus } from "../shared/a11y.js";
@@ -15,7 +15,7 @@ import { duration, formatDistance, initials } from "../shared/format.js";
 import { RealtimeChannel } from "../shared/ws.js";
 import { createMap, incidentMarker, leafletAvailable } from "../shared/map.js";
 import { initNav } from "../shared/nav.js";
-import { mockAlert, mockBadges, mockRecentAlerts } from "../shared/mock.js";
+import { mockAlert, mockRecentAlerts } from "../shared/mock.js";
 
 const el = (id) => document.getElementById(id);
 const preview = new URLSearchParams(location.search).get("preview");
@@ -132,18 +132,9 @@ function renderRecent() {
     "were never measured.";
 }
 
-function renderBadges() {
-  el("badges").innerHTML = mockBadges
-    .map(
-      (badge) => `
-      <div class="badge-tile">
-        <div class="badge-tile__icon">${badge.icon}</div>
-        <div class="strong small">${badge.label}</div>
-        <div class="tiny muted">${badge.note}</div>
-      </div>`
-    )
-    .join("");
-}
+/* `renderBadges` is gone with the card it filled. The real verification state
+ * and declared skill are rendered by `renderVolunteerState` from
+ * /volunteers/me, which is the only place either has ever been true. */
 
 /* ---- incoming alert ----------------------------------------------------- */
 
@@ -302,7 +293,6 @@ function bootPreview(name) {
   el("user-initials").textContent = "P";
   el("conn-pill").textContent = "preview";
   renderRecent();
-  renderBadges();
 
   el("preview-switch").hidden = false;
   el("preview-select").value = name;
@@ -338,7 +328,6 @@ async function boot() {
   el("user-initials").textContent = initials(user.name);
   initNav();
   renderRecent();
-  renderBadges();
 
   el("availability").addEventListener("change", onAvailabilityChange);
 
